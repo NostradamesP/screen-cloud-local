@@ -26,7 +26,7 @@ export default function Content() {
 
   const load = async () => {
     const [data, media, tagList] = await Promise.all([
-      api.content.list(),
+      api.content.list().catch(() => []),
       api.media.list().catch(() => []),
       api.tags.list().catch(() => []),
     ]);

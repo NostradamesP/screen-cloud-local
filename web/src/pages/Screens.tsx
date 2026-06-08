@@ -16,7 +16,7 @@ export default function Screens() {
 
   const load = async () => {
     const [data, content] = await Promise.all([
-      api.screens.list(),
+      api.screens.list().catch(() => []),
       api.content.list().catch(() => []),
     ]);
     setScreens(data);

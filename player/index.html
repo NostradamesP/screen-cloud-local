@@ -71,6 +71,7 @@ if ('serviceWorker' in navigator) {
   var rotationTimer = null;
   var ws = null;
   var heartbeatTimer = null;
+  var videoElement = null;
 
   // --- DOM refs ---
   var container = document.getElementById('player-container');
@@ -227,8 +228,6 @@ if ('serviceWorker' in navigator) {
       scheduleNext();
     }
   }
-
-  var videoElement = null;
 
   function startRotation() {
     if (rotationTimer) clearInterval(rotationTimer);

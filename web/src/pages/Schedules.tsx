@@ -26,9 +26,9 @@ export default function Schedules() {
 
   const load = async () => {
     const [s, p, sc, g] = await Promise.all([
-      api.schedules.list(),
-      api.playlists.list(),
-      api.screens.list(),
+      api.schedules.list().catch(() => []),
+      api.playlists.list().catch(() => []),
+      api.screens.list().catch(() => []),
       api.screenGroups.list().catch(() => []),
     ]);
     setSchedules(s);

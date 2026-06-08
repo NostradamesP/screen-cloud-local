@@ -14,13 +14,18 @@ export default function Playlists() {
   const [contentItems, setContentItems] = useState<any[]>([]);
 
   const load = async () => {
-    const data = await api.playlists.list();
+    const data = await api.playlists.list().catch(() => []);
     setPlaylists(data);
   };
 
   const loadContent = useCallback(async () => {
     const items = await api.content.list().catch(() => []);
     setContentItems(items);
+  }, []);
+
+  const refreshPlaylist = useCallback(async (id: string) => {
+    const data = await api.playlists.get(id).catch(() => null);
+    if (data) setPlaylists((prev) => prev.map((p) => (p.id === id ? data : p)));
   }, []);
 
   useEffect(() => { load(); loadContent(); }, [loadContent]);
@@ -93,8 +98,9 @@ export default function Playlists() {
       durationOverride: addItemForm.durationOverride ? parseInt(addItemForm.durationOverride) : undefined,
     });
     setAddItemForm(null);
+    const refreshedId = selectedPlaylistId;
     setSelectedPlaylistId(null);
-    toggleExpand(selectedPlaylistId);
+    refreshPlaylist(refreshedId);
   };
 
   const deleteItem = async (playlistId: string, itemId: string) => {

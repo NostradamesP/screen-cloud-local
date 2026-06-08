@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { z } from "zod";
 import { db } from "../../db";
-import { playlists, playlistItems } from "../../db/schema";
+import { playlists, playlistItems, contentItems } from "../../db/schema";
 import { eq, and } from "drizzle-orm";
 import { logAudit } from "../../lib/audit";
 import { cacheDel } from "../../lib/cache";
@@ -31,10 +31,19 @@ export async function playlistRoutes(fastify: FastifyInstance) {
       and(eq(playlists.id, id), eq(playlists.organizationId, orgId))
     );
     if (!playlist) return reply.status(404).send({ error: "Playlist not found" });
-    const items = await db.select().from(playlistItems)
+    const items = await db.select({
+      item: playlistItems,
+      contentItem: contentItems,
+    })
+      .from(playlistItems)
+      .leftJoin(contentItems, eq(playlistItems.contentItemId, contentItems.id))
       .where(eq(playlistItems.playlistId, id))
       .orderBy(playlistItems.position);
-    return { ...playlist, items };
+    const formattedItems = items.map(({ item, contentItem }) => ({
+      ...item,
+      contentItem,
+    }));
+    return { ...playlist, items: formattedItems };
   });
 
   fastify.post("/api/playlists", {
