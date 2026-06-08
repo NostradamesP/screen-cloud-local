@@ -544,6 +544,7 @@ export default function Screens() {
     const slideBg = hasGradient ? `linear-gradient(${gDir[form.templateGradientDirection] || "to bottom"}, ${g1}, ${g2})` : bg;
     const qrDisplay = form.templateQrUrl ? "🔗" : qrText;
     const logoDisplay = form.templateLogoUrl ? "🖼" : logoText;
+    const tickerStyle: React.CSSProperties = { background: tkBg, color: tkTxt, fontFamily: ff };
 
     if (template === "full_bleed") {
       return (

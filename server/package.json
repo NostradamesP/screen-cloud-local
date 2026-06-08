@@ -28,7 +28,6 @@
     "fastify": "^4.28.0",
     "fastify-plugin": "^4.5.1",
     "ioredis": "^5.4.1",
-    "minio": "^8.0.0",
     "nodemailer": "^8.0.10",
     "postgres": "^3.4.4",
     "tsx": "^4.22.4",

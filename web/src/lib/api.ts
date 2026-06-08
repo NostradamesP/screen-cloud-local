@@ -1,4 +1,4 @@
-const API_BASE = "/api";
+const API_BASE = (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_URL) || "/api";
 
 function getToken(): string | null {
   return localStorage.getItem("token");
@@ -153,7 +153,7 @@ export const api = {
       request<any>(`/content/${id}/status`, { method: "PUT", body: JSON.stringify({ status }) }),
     exportContent: () => {
       const token = getToken();
-      return fetch(`/api/content/export`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+      return fetch(`${API_BASE}/content/export`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
         .then(r => r.json());
     },
     importContent: (data: any[]) =>

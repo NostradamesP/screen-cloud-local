@@ -2,10 +2,9 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { db } from "../../db";
 import { mediaAssets } from "../../db/schema";
 import { eq } from "drizzle-orm";
-import { getMinio } from "../../minio";
-import { config } from "../../config";
 import { v4 as uuid } from "uuid";
 import path from "path";
+import { saveFile, deleteFile, getFileStream, getFileSize, getContentType } from "../../storage";
 
 const ALLOWED_TYPES = [
   "image/jpeg", "image/png", "image/gif", "image/webp",
@@ -32,15 +31,10 @@ export async function mediaRoutes(fastify: FastifyInstance) {
 
     const ext = path.extname(data.filename) || ".bin";
     const filename = `${uuid()}${ext}`;
-    const objectName = `${orgId}/${filename}`;
-
     const buffer = await data.toBuffer();
     const size = buffer.length;
 
-    const minio = getMinio();
-    await minio.putObject(config.minio.bucket, objectName, buffer, size, {
-      "Content-Type": mimeType,
-    });
+    await saveFile(orgId, filename, buffer);
 
     const url = `/api/public/file/${orgId}/${filename}`;
 
@@ -65,21 +59,17 @@ export async function mediaRoutes(fastify: FastifyInstance) {
     if (!asset || asset.organizationId !== orgId) {
       return reply.status(404).send({ error: "Media not found" });
     }
-    const minio = getMinio();
-    try {
-      await minio.removeObject(config.minio.bucket, `${orgId}/${asset.filename}`);
-    } catch {}
+    await deleteFile(orgId, asset.filename);
     await db.delete(mediaAssets).where(eq(mediaAssets.id, id));
     return reply.status(204).send();
   });
 
   fastify.get("/api/media/file/:orgId/:filename", async (request: FastifyRequest, reply: FastifyReply) => {
     const { orgId, filename } = request.params as { orgId: string; filename: string };
-    const minio = getMinio();
     try {
-      const stream = await minio.getObject(config.minio.bucket, `${orgId}/${filename}`);
-      const stat = await minio.statObject(config.minio.bucket, `${orgId}/${filename}`);
-      reply.header("Content-Type", stat.metaData?.["content-type"] || "application/octet-stream");
+      const stream = getFileStream(orgId, filename);
+      const mimeType = getContentType(filename);
+      reply.header("Content-Type", mimeType);
       reply.header("Cache-Control", "public, max-age=31536000");
       return reply.send(stream);
     } catch {
@@ -91,13 +81,10 @@ export async function mediaRoutes(fastify: FastifyInstance) {
 export async function publicMediaRoutes(fastify: FastifyInstance) {
   fastify.get("/api/public/file/:orgId/:filename", async (request: FastifyRequest, reply: FastifyReply) => {
     const { orgId, filename } = request.params as { orgId: string; filename: string };
-    const minio = getMinio();
-    const objectName = `${orgId}/${filename}`;
 
     try {
-      const stat = await minio.statObject(config.minio.bucket, objectName);
-      const totalSize = stat.size;
-      const mimeType = stat.metaData?.["content-type"] || "application/octet-stream";
+      const totalSize = await getFileSize(orgId, filename);
+      const mimeType = getContentType(filename);
       const rangeHeader = request.headers.range;
 
       reply.header("Accept-Ranges", "bytes");
@@ -117,7 +104,7 @@ export async function publicMediaRoutes(fastify: FastifyInstance) {
           return reply.status(416).send({ error: "Range Not Satisfiable" });
         }
 
-        const stream = await minio.getPartialObject(config.minio.bucket, objectName, start, chunkSize);
+        const stream = getFileStream(orgId, filename, { start, end });
         reply.status(206);
         reply.header("Content-Range", `bytes ${start}-${end}/${totalSize}`);
         reply.header("Content-Length", chunkSize);
@@ -125,15 +112,12 @@ export async function publicMediaRoutes(fastify: FastifyInstance) {
         return reply.send(stream);
       }
 
-      const stream = await minio.getObject(config.minio.bucket, objectName);
+      const stream = getFileStream(orgId, filename);
       reply.header("Content-Type", mimeType);
       reply.header("Content-Length", totalSize);
       return reply.send(stream);
-    } catch (err: any) {
-      if (err.code === "NotFound") {
-        return reply.status(404).send({ error: "File not found" });
-      }
-      throw err;
+    } catch {
+      return reply.status(404).send({ error: "File not found" });
     }
   });
 }

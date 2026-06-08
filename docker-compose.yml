@@ -25,23 +25,6 @@ services:
       timeout: 3s
       retries: 5
 
-  minio:
-    image: minio/minio
-    command: server /data --console-address ":9001"
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
-    volumes:
-      - miniodata:/data
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
   api:
     build: ./server
     ports:
@@ -50,22 +33,18 @@ services:
       NODE_ENV: production
       DATABASE_URL: postgres://signage:signage@postgres:5432/signage
       REDIS_URL: redis://redis:6379
-      MINIO_ENDPOINT: minio
-      MINIO_PORT: "9000"
-      MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: minioadmin
-      MINIO_BUCKET: signage
+      UPLOAD_DIR: /data/uploads
       JWT_SECRET: change-me-to-a-random-secret
       JWT_EXPIRES_IN: 7d
       DEFAULT_ORG_NAME: Mi Empresa
+    volumes:
+      - uploads:/data/uploads
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-      minio:
-        condition: service_started
 
 volumes:
   pgdata:
-  miniodata:
+  uploads:

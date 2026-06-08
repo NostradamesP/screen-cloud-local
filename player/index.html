@@ -176,8 +176,23 @@ if ('serviceWorker' in navigator) {
 (function () {
   'use strict';
 
-  var API_BASE = '/api';
-  var WS_BASE = (location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + location.host;
+  var urlParams = new URLSearchParams(window.location.search);
+  var apiOverride = urlParams.get('api');
+  if (apiOverride) {
+    localStorage.setItem('signage_api_url', apiOverride);
+  }
+  var storedApi = localStorage.getItem('signage_api_url');
+  var API_BASE = storedApi || '/api';
+  var WS_BASE;
+  if (storedApi || apiOverride) {
+    var baseUrl = storedApi || apiOverride;
+    var clean = baseUrl.replace(/\/api\/?$/, '').replace(/\/+$/, '');
+    var protocol = clean.indexOf('https://') === 0 ? 'wss://' : 'ws://';
+    WS_BASE = protocol + clean.replace(/^https?:\/\//, '');
+    if (!WS_BASE.match(/^wss?:\/\//)) WS_BASE = (location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + WS_BASE;
+  } else {
+    WS_BASE = (location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + location.host;
+  }
   var HEARTBEAT_INTERVAL = 30000;
   var screenId = null;
   var currentIndex = 0;

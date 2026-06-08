@@ -12,8 +12,8 @@ import { config } from "./config";
 import { db } from "./db";
 import authPlugin from "./plugins/auth";
 import authorizationPlugin from "./plugins/authorization";
-import { ensureBucket } from "./minio";
 import { cacheDel } from "./lib/cache";
+import { ensureUploadDir } from "./storage";
 import { authRoutes } from "./modules/auth/routes";
 import { contentRoutes } from "./modules/content/routes";
 import { mediaRoutes, publicMediaRoutes } from "./modules/media/routes";
@@ -98,12 +98,7 @@ async function main() {
   } catch {}
 
   try { await cacheDel("player:*"); } catch {}
-  try {
-    await ensureBucket();
-    console.log("MinIO bucket ready");
-  } catch (err) {
-    console.warn("MinIO not available, file uploads will fail:", (err as Error).message);
-  }
+  ensureUploadDir();
 
   try {
     await fastify.listen({ port: config.port, host: config.host });
