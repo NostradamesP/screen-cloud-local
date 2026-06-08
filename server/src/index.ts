@@ -10,6 +10,9 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { config } from "./config";
 import { db } from "./db";
+import { drizzle } from "drizzle-orm/postgres-js";
+import { migrate } from "drizzle-orm/postgres-js/migrator";
+import postgres from "postgres";
 import authPlugin from "./plugins/auth";
 import authorizationPlugin from "./plugins/authorization";
 import { cacheDel } from "./lib/cache";
@@ -99,6 +102,16 @@ async function main() {
 
   try { await cacheDel("player:*"); } catch {}
   ensureUploadDir();
+
+  try {
+    const migSql = postgres(config.database.url, { max: 1 });
+    const migDb = drizzle(migSql);
+    await migrate(migDb, { migrationsFolder: path.join(__dirname, "./db/migrations") });
+    await migSql.end();
+    console.log("Migrations complete");
+  } catch (err) {
+    console.warn("Migration error:", (err as Error).message);
+  }
 
   try {
     await fastify.listen({ port: config.port, host: config.host });
