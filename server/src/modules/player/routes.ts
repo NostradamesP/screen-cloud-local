@@ -107,6 +107,17 @@ function playerScreenPayload(screen: any) {
       fontFamily: typeof settings.templateFontFamily === "string" ? settings.templateFontFamily : null,
       fontSizeScale: typeof settings.templateFontSizeScale === "string" ? settings.templateFontSizeScale : null,
       cornerRadius: typeof settings.templateCornerRadius === "string" ? settings.templateCornerRadius : null,
+      tickerSpeed: typeof settings.templateTickerSpeed === "string" ? settings.templateTickerSpeed : null,
+      transition: typeof settings.templateTransition === "string" ? settings.templateTransition : null,
+      mediaFit: typeof settings.templateMediaFit === "string" ? settings.templateMediaFit : null,
+      showWeather: typeof settings.templateShowWeather === "string" ? settings.templateShowWeather : null,
+      showTicker: typeof settings.templateShowTicker === "string" ? settings.templateShowTicker : null,
+      customCSS: typeof settings.templateCustomCSS === "string" ? settings.templateCustomCSS : null,
+      qrUrl: typeof settings.templateQrUrl === "string" ? settings.templateQrUrl : null,
+      logoUrl: typeof settings.templateLogoUrl === "string" ? settings.templateLogoUrl : null,
+      gradientColor1: typeof settings.templateGradientColor1 === "string" ? settings.templateGradientColor1 : null,
+      gradientColor2: typeof settings.templateGradientColor2 === "string" ? settings.templateGradientColor2 : null,
+      gradientDirection: typeof settings.templateGradientDirection === "string" ? settings.templateGradientDirection : null,
     },
   };
 }

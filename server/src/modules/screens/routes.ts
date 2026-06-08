@@ -129,6 +129,17 @@ export async function screenRoutes(fastify: FastifyInstance) {
         fontFamily: s.templateFontFamily || null,
         fontSizeScale: s.templateFontSizeScale || null,
         cornerRadius: s.templateCornerRadius || null,
+        tickerSpeed: s.templateTickerSpeed || null,
+        transition: s.templateTransition || null,
+        mediaFit: s.templateMediaFit || null,
+        showWeather: s.templateShowWeather || null,
+        showTicker: s.templateShowTicker || null,
+        customCSS: s.templateCustomCSS || null,
+        qrUrl: s.templateQrUrl || null,
+        logoUrl: s.templateLogoUrl || null,
+        gradientColor1: s.templateGradientColor1 || null,
+        gradientColor2: s.templateGradientColor2 || null,
+        gradientDirection: s.templateGradientDirection || null,
       },
     });
     return updated;

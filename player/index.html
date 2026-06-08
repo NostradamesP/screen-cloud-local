@@ -30,14 +30,16 @@ body.player-idle #app::before, body.player-pairing #app::before { opacity: 1; }
   --tpl-widget-bg: color-mix(in srgb, var(--tpl-primary) 78%, #ffffff);
   --tpl-accent: #244244;
   --tpl-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --tpl-radius: 4px; }
+  --tpl-radius: 4px;
+  --tpl-media-fit: cover;
+  --tpl-ticker-speed: 12s; }
 .slide.template-media_left, .slide.template-media_right,
 .slide.template-center_stage, .slide.template-hero_overlay {
   display: grid; grid-template-rows: 82% 18%; align-items: stretch; justify-content: stretch; background: var(--tpl-bg); color: var(--tpl-text); font-family: var(--tpl-font); }
 .tpl-grid { display: grid; grid-template-columns: 34% 42% 24%; height: 100%; min-height: 0; border: 2px solid var(--tpl-accent); border-bottom: 0; }
 .template-media_right .tpl-grid { grid-template-columns: 42% 34% 24%; }
 .tpl-media { min-width: 0; min-height: 0; overflow: hidden; background: #e5e7eb; }
-.tpl-media img, .tpl-media video, .tpl-media iframe { width: 100%; height: 100%; object-fit: cover; border: 0; }
+.tpl-media img, .tpl-media video, .tpl-media iframe { width: 100%; height: 100%; object-fit: var(--tpl-media-fit, cover); border: 0; }
 .tpl-sidebar { display: flex; flex-direction: column; justify-content: center; padding: 4vh 3vw; background: linear-gradient(135deg, color-mix(in srgb, var(--tpl-primary) 24%, var(--tpl-bg)), color-mix(in srgb, var(--tpl-primary) 54%, var(--tpl-bg))); }
 .tpl-sidebar, .tpl-sidebar .tpl-headline, .tpl-sidebar .tpl-subtitle { color: color-mix(in srgb, var(--tpl-primary) 45%, #064e3b); }
 .tpl-badge { font-size: clamp(0.8rem, 1.4vw, 1.4rem); font-weight: 900; color: rgba(255,255,255,0.95); }
@@ -53,7 +55,7 @@ body.player-idle #app::before, body.player-pairing #app::before { opacity: 1; }
 .tpl-wfeel { font-size: clamp(0.5rem, 0.65vw, 0.8rem); font-weight: 800; opacity: 0.9; }
 .tpl-center { height: 100%; display: grid; grid-template-rows: 1fr auto; background: #000; }
 .tpl-center-media { overflow: hidden; min-height: 0; background: #e5e7eb; }
-.tpl-center-media img, .tpl-center-media video, .tpl-center-media iframe { width: 100%; height: 100%; object-fit: contain; border: 0; }
+.tpl-center-media img, .tpl-center-media video, .tpl-center-media iframe { width: 100%; height: 100%; object-fit: var(--tpl-media-fit, contain); border: 0; }
 .tpl-center-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 1vw; padding: 1.5vh 3vw; background: color-mix(in srgb, var(--tpl-primary) 66%, #0f172a); color: #fff; }
 .tpl-center-badge { font-size: clamp(0.6rem, 0.85vw, 0.95rem); font-weight: 800; opacity: 0.95; }
 .tpl-center-headline { font-size: clamp(0.9rem, 1.6vw, 2rem); font-weight: 950; }
@@ -62,7 +64,7 @@ body.player-idle #app::before, body.player-pairing #app::before { opacity: 1; }
 .tpl-center-widget { margin-left: auto; font-size: clamp(0.55rem, 0.75vw, 0.9rem); font-weight: 700; opacity: 0.85; white-space: nowrap; }
 .tpl-hero { position: relative; height: 100%; overflow: hidden; }
 .tpl-hero-bg { position: absolute; inset: 0; z-index: 0; }
-.tpl-hero-bg img, .tpl-hero-bg video, .tpl-hero-bg iframe { width: 100%; height: 100%; object-fit: cover; border: 0; }
+.tpl-hero-bg img, .tpl-hero-bg video, .tpl-hero-bg iframe { width: 100%; height: 100%; object-fit: var(--tpl-media-fit, cover); border: 0; }
 .tpl-hero-overlay { position: absolute; inset: 0; z-index: 1; display: flex; flex-direction: column; justify-content: flex-end; padding: 5vh 4vw 3vh; background: linear-gradient(0deg, rgba(0,0,0,0.82) 30%, transparent); color: #fff; }
 .tpl-hero-badge { font-size: clamp(0.65rem, 1.1vw, 1.3rem); font-weight: 700; color: color-mix(in srgb, var(--tpl-primary) 70%, #fff); }
 .tpl-hero-headline { margin-top: 0.5vh; font-size: clamp(1.4rem, 3.2vw, 4rem); font-weight: 950; line-height: 0.96; }
@@ -73,10 +75,18 @@ body.player-idle #app::before, body.player-pairing #app::before { opacity: 1; }
 .tpl-hero-wloc { font-size: clamp(0.5rem, 0.65vw, 0.8rem); font-weight: 800; }
 .tpl-hero-wicon { font-size: clamp(1.2rem, 2.2vw, 2.6rem); line-height: 1; margin-top: 0.3vh; }
 .tpl-hero-wtemp { font-size: clamp(0.9rem, 1.6vw, 2rem); font-weight: 950; margin-top: 0.3vh; }
-.slide.template-full_bleed img, .slide.template-full_bleed video, .slide.template-full_bleed iframe { width: 100%; height: 100%; object-fit: cover; border: 0; }
+.slide.template-full_bleed img, .slide.template-full_bleed video, .slide.template-full_bleed iframe { width: 100%; height: 100%; object-fit: var(--tpl-media-fit, cover); border: 0; }
 .tpl-ticker { display: flex; min-height: 0; align-items: center; gap: 2vw; border: 2px solid var(--tpl-accent); background: var(--tpl-ticker-bg); padding: 0 3vw; color: var(--tpl-ticker-text); }
-.tpl-ticker-logo { color: var(--tpl-primary); font-size: clamp(1.4rem, 2.6vw, 3rem); font-weight: 950; line-height: 1; }
-.tpl-ticker-text { overflow: hidden; white-space: nowrap; text-overflow: clip; font-size: clamp(0.8rem, 1.3vw, 1.6rem); font-weight: 850; }
+.tpl-ticker-logo { color: var(--tpl-primary); font-size: clamp(1.4rem, 2.6vw, 3rem); font-weight: 950; line-height: 1; display: flex; align-items: center; }
+.tpl-ticker-logo img { max-height: clamp(1.6rem, 3vw, 3.2rem); width: auto; object-fit: contain; }
+.tpl-ticker-track { overflow: hidden; flex: 1; display: flex; min-width: 0; }
+.tpl-ticker-text { white-space: nowrap; flex-shrink: 0; font-size: clamp(0.8rem, 1.3vw, 1.6rem); font-weight: 850; }
+.tpl-ticker-text.marquee { animation: tpl-marquee var(--tpl-ticker-speed, 12s) linear infinite; }
+.tpl-ticker-text-clone { }
+@keyframes tpl-marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
 
 #pair-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--purpose-color-2), var(--purpose-color)); z-index: 100; }
 #pair-screen.hidden { display: none; }
@@ -405,6 +415,25 @@ if ('serviceWorker' in navigator) {
         var RADIUS_MAP = { none: '0px', subtle: '4px', rounded: '8px', pill: '9999px' };
         el.style.setProperty('--tpl-radius', RADIUS_MAP[style.cornerRadius] || style.cornerRadius);
       }
+      if (style.mediaFit) el.style.setProperty('--tpl-media-fit', style.mediaFit);
+      if (style.tickerSpeed) {
+        var SPEED_MAP = { slow: '20s', normal: '12s', fast: '6s' };
+        el.style.setProperty('--tpl-ticker-speed', SPEED_MAP[style.tickerSpeed] || '12s');
+      }
+      if (style.gradientColor1 && style.gradientColor2) {
+        var DIR_MAP = { to_bottom: 'to bottom', to_right: 'to right', to_bottom_right: 'to bottom right', to_left: 'to left', to_top: 'to top' };
+        var dir = DIR_MAP[style.gradientDirection] || 'to bottom';
+        el.style.background = 'linear-gradient(' + dir + ', ' + style.gradientColor1 + ', ' + style.gradientColor2 + ')';
+      }
+      if (style.transition) {
+        var bodyClasses = document.body.className ? document.body.className.split(/\s+/) : [];
+        var filtered = [];
+        for (var i = 0; i < bodyClasses.length; i++) {
+          if (bodyClasses[i] && bodyClasses[i].indexOf('transition-') !== 0) filtered.push(bodyClasses[i]);
+        }
+        if (style.transition !== 'none') filtered.push('transition-' + style.transition);
+        document.body.className = filtered.join(' ');
+      }
     })(div, currentTemplateStyle);
     var mediaEl = null;
 
@@ -539,6 +568,15 @@ if ('serviceWorker' in navigator) {
   function appendTemplateLayout(div, item, mediaEl) {
     if (!item || !item.content) return;
     var v = tplVars();
+    var showWeather = currentTemplateStyle.showWeather !== 'no';
+    var showTicker = currentTemplateStyle.showTicker !== 'no';
+    var qrSrc = currentTemplateStyle.qrUrl;
+    var logoSrc = currentTemplateStyle.logoUrl;
+    var customCSS = currentTemplateStyle.customCSS;
+
+    var qrHtml = qrSrc ? '<img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=' + encodeURIComponent(qrSrc) + '" alt="QR" style="display:block;max-width:100%;max-height:100%;">' : escapeHtml(v.qrText);
+    var logoHtml = logoSrc ? '<img src="' + escapeHtml(logoSrc) + '" alt="Logo">' : escapeHtml(v.logoText);
+    var tickerEsc = escapeHtml(v.ticker);
 
     if (currentTemplate === 'media_left' || currentTemplate === 'media_right') {
       var grid = document.createElement('div');
@@ -548,12 +586,14 @@ if ('serviceWorker' in navigator) {
       m.appendChild(mediaEl);
       var s = document.createElement('div');
       s.className = 'tpl-sidebar';
-      s.innerHTML = '<div class="tpl-badge">' + escapeHtml(v.badge) + '</div><div class="tpl-headline">' + escapeHtml(v.headline) + '</div><div class="tpl-subrow"><div class="tpl-qr">' + escapeHtml(v.qrText) + '</div><div class="tpl-subtitle">' + escapeHtml(v.subtitle) + '</div></div>';
-      var w = document.createElement('div');
-      w.className = 'tpl-weather-right';
-      w.innerHTML = '<div class="tpl-wloc">' + escapeHtml(v.weatherLocation) + '</div><div class="tpl-wpill">Today</div><div class="tpl-wicon">☁</div><div class="tpl-wtemp">' + escapeHtml(v.temperature) + '</div><div class="tpl-wfeel">Feels like 16°</div>';
+      s.innerHTML = '<div class="tpl-badge">' + escapeHtml(v.badge) + '</div><div class="tpl-headline">' + escapeHtml(v.headline) + '</div><div class="tpl-subrow"><div class="tpl-qr">' + qrHtml + '</div><div class="tpl-subtitle">' + escapeHtml(v.subtitle) + '</div></div>';
       if (currentTemplate === 'media_right') { grid.appendChild(s); grid.appendChild(m); } else { grid.appendChild(m); grid.appendChild(s); }
-      grid.appendChild(w);
+      if (showWeather) {
+        var w = document.createElement('div');
+        w.className = 'tpl-weather-right';
+        w.innerHTML = '<div class="tpl-wloc">' + escapeHtml(v.weatherLocation) + '</div><div class="tpl-wpill">Today</div><div class="tpl-wicon">☁</div><div class="tpl-wtemp">' + escapeHtml(v.temperature) + '</div><div class="tpl-wfeel">Feels like 16°</div>';
+        grid.appendChild(w);
+      }
       div.appendChild(grid);
     } else if (currentTemplate === 'center_stage') {
       var c = document.createElement('div');
@@ -563,7 +603,7 @@ if ('serviceWorker' in navigator) {
       cm.appendChild(mediaEl);
       var cb = document.createElement('div');
       cb.className = 'tpl-center-bar';
-      cb.innerHTML = '<span class="tpl-center-badge">' + escapeHtml(v.badge) + '</span><span class="tpl-center-headline">' + escapeHtml(v.headline) + '</span><span class="tpl-center-sub">' + escapeHtml(v.subtitle) + '</span><span class="tpl-center-qr">' + escapeHtml(v.qrText) + '</span><span class="tpl-center-widget">☁ ' + escapeHtml(v.temperature) + ' ' + escapeHtml(v.weatherLocation) + '</span>';
+      cb.innerHTML = '<span class="tpl-center-badge">' + escapeHtml(v.badge) + '</span><span class="tpl-center-headline">' + escapeHtml(v.headline) + '</span><span class="tpl-center-sub">' + escapeHtml(v.subtitle) + '</span><span class="tpl-center-qr">' + qrHtml + '</span>' + (showWeather ? '<span class="tpl-center-widget">☁ ' + escapeHtml(v.temperature) + ' ' + escapeHtml(v.weatherLocation) + '</span>' : '');
       c.appendChild(cm);
       c.appendChild(cb);
       div.appendChild(c);
@@ -575,20 +615,30 @@ if ('serviceWorker' in navigator) {
       hb.appendChild(mediaEl);
       var ho = document.createElement('div');
       ho.className = 'tpl-hero-overlay';
-      ho.innerHTML = '<div class="tpl-hero-badge">' + escapeHtml(v.badge) + '</div><div class="tpl-hero-headline">' + escapeHtml(v.headline) + '</div><div class="tpl-hero-subrow"><div class="tpl-hero-qr">' + escapeHtml(v.qrText) + '</div><div class="tpl-hero-sub">' + escapeHtml(v.subtitle) + '</div></div>';
-      var hw = document.createElement('div');
-      hw.className = 'tpl-hero-widget';
-      hw.innerHTML = '<div class="tpl-hero-wloc">' + escapeHtml(v.weatherLocation) + '</div><div class="tpl-hero-wicon">☁</div><div class="tpl-hero-wtemp">' + escapeHtml(v.temperature) + '</div>';
+      ho.innerHTML = '<div class="tpl-hero-badge">' + escapeHtml(v.badge) + '</div><div class="tpl-hero-headline">' + escapeHtml(v.headline) + '</div><div class="tpl-hero-subrow"><div class="tpl-hero-qr">' + qrHtml + '</div><div class="tpl-hero-sub">' + escapeHtml(v.subtitle) + '</div></div>';
       h.appendChild(hb);
       h.appendChild(ho);
-      h.appendChild(hw);
+      if (showWeather) {
+        var hw = document.createElement('div');
+        hw.className = 'tpl-hero-widget';
+        hw.innerHTML = '<div class="tpl-hero-wloc">' + escapeHtml(v.weatherLocation) + '</div><div class="tpl-hero-wicon">☁</div><div class="tpl-hero-wtemp">' + escapeHtml(v.temperature) + '</div>';
+        h.appendChild(hw);
+      }
       div.appendChild(h);
     }
 
-    var tk = document.createElement('div');
-    tk.className = 'tpl-ticker';
-    tk.innerHTML = '<div class="tpl-ticker-logo">' + escapeHtml(v.logoText) + '</div><div class="tpl-ticker-text">' + escapeHtml(v.ticker) + '</div>';
-    div.appendChild(tk);
+    if (showTicker) {
+      var tk = document.createElement('div');
+      tk.className = 'tpl-ticker';
+      tk.innerHTML = '<div class="tpl-ticker-logo">' + logoHtml + '</div><div class="tpl-ticker-track"><div class="tpl-ticker-text marquee">' + tickerEsc + '</div><div class="tpl-ticker-text tpl-ticker-text-clone marquee">' + tickerEsc + '</div></div>';
+      div.appendChild(tk);
+    }
+
+    if (customCSS) {
+      var st = document.createElement('style');
+      st.textContent = customCSS;
+      div.appendChild(st);
+    }
   }
 
   // --- WebSocket ---

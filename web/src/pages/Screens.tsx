@@ -139,6 +139,17 @@ type ScreenForm = {
   templateFontFamily: string;
   templateFontSizeScale: string;
   templateCornerRadius: string;
+  templateTickerSpeed: string;
+  templateTransition: string;
+  templateMediaFit: string;
+  templateShowWeather: string;
+  templateShowTicker: string;
+  templateCustomCSS: string;
+  templateQrUrl: string;
+  templateLogoUrl: string;
+  templateGradientColor1: string;
+  templateGradientColor2: string;
+  templateGradientDirection: string;
 };
 
 type Toast = {
@@ -171,6 +182,17 @@ const emptyForm: ScreenForm = {
   templateFontFamily: "system",
   templateFontSizeScale: "1.0",
   templateCornerRadius: "subtle",
+  templateTickerSpeed: "normal",
+  templateTransition: "none",
+  templateMediaFit: "cover",
+  templateShowWeather: "yes",
+  templateShowTicker: "yes",
+  templateCustomCSS: "",
+  templateQrUrl: "",
+  templateLogoUrl: "",
+  templateGradientColor1: "",
+  templateGradientColor2: "",
+  templateGradientDirection: "to_bottom",
 };
 
 export default function Screens() {
@@ -252,6 +274,17 @@ export default function Screens() {
       templateFontFamily,
       templateFontSizeScale,
       templateCornerRadius,
+      templateTickerSpeed,
+      templateTransition,
+      templateMediaFit,
+      templateShowWeather,
+      templateShowTicker,
+      templateCustomCSS,
+      templateQrUrl,
+      templateLogoUrl,
+      templateGradientColor1,
+      templateGradientColor2,
+      templateGradientDirection,
       ...screenForm
     } = form;
     const payload: any = {
@@ -277,6 +310,17 @@ export default function Screens() {
         templateFontFamily,
         templateFontSizeScale,
         templateCornerRadius,
+        templateTickerSpeed,
+        templateTransition,
+        templateMediaFit,
+        templateShowWeather,
+        templateShowTicker,
+        templateCustomCSS,
+        templateQrUrl,
+        templateLogoUrl,
+        templateGradientColor1,
+        templateGradientColor2,
+        templateGradientDirection,
       },
     };
     try {
@@ -330,6 +374,17 @@ export default function Screens() {
       templateFontFamily: screen.settings?.templateFontFamily ?? "system",
       templateFontSizeScale: screen.settings?.templateFontSizeScale ?? "1.0",
       templateCornerRadius: screen.settings?.templateCornerRadius ?? "subtle",
+      templateTickerSpeed: screen.settings?.templateTickerSpeed ?? "normal",
+      templateTransition: screen.settings?.templateTransition ?? "none",
+      templateMediaFit: screen.settings?.templateMediaFit ?? "cover",
+      templateShowWeather: screen.settings?.templateShowWeather ?? "yes",
+      templateShowTicker: screen.settings?.templateShowTicker ?? "yes",
+      templateCustomCSS: screen.settings?.templateCustomCSS ?? "",
+      templateQrUrl: screen.settings?.templateQrUrl ?? "",
+      templateLogoUrl: screen.settings?.templateLogoUrl ?? "",
+      templateGradientColor1: screen.settings?.templateGradientColor1 ?? "",
+      templateGradientColor2: screen.settings?.templateGradientColor2 ?? "",
+      templateGradientDirection: screen.settings?.templateGradientDirection ?? "to_bottom",
     });
     setEditing(screen);
     setShowForm(true);
@@ -477,18 +532,23 @@ export default function Screens() {
     const ff = FONT_MAP[form.templateFontFamily] || FONT_MAP.system;
     const cr = RADIUS_MAP[form.templateCornerRadius] || "4px";
 
-    const slideStyle: React.CSSProperties = {
-      background: bg, color: txt, fontFamily: ff,
-      borderRadius: cr,
+    const showWeather = form.templateShowWeather !== "no";
+    const showTicker = form.templateShowTicker !== "no";
+    const hasGradient = form.templateGradientColor1 && form.templateGradientColor2;
+    const gDir: Record<string, string> = {
+      to_bottom: "to bottom", to_right: "to right",
+      to_bottom_right: "to bottom right", to_left: "to left", to_top: "to top",
     };
-    const tickerStyle: React.CSSProperties = {
-      background: tkBg, color: tkTxt,
-    };
+    const g1 = form.templateGradientColor1 || bg;
+    const g2 = form.templateGradientColor2 || bg;
+    const slideBg = hasGradient ? `linear-gradient(${gDir[form.templateGradientDirection] || "to bottom"}, ${g1}, ${g2})` : bg;
+    const qrDisplay = form.templateQrUrl ? "🔗" : qrText;
+    const logoDisplay = form.templateLogoUrl ? "🖼" : logoText;
 
     if (template === "full_bleed") {
       return (
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-slate-950 p-2 shadow-inner">
-          <div className="relative aspect-video overflow-hidden rounded-lg bg-gradient-to-br from-slate-300 via-brand-200 to-slate-600">
+          <div className="relative aspect-video overflow-hidden rounded-lg" style={{ background: slideBg }}>
             <div className="flex h-full items-center justify-center text-sm font-bold uppercase tracking-wide text-white/85">Video / Imagen</div>
           </div>
         </div>
@@ -499,7 +559,7 @@ export default function Screens() {
       const mediaFirst = template === "media_left";
       return (
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-slate-950 p-2 shadow-inner">
-          <div className="relative aspect-video overflow-hidden rounded-lg" style={{ background: bg }}>
+          <div className="relative aspect-video overflow-hidden rounded-lg" style={{ background: slideBg }}>
             <div className="absolute inset-x-0 top-0 bottom-[17%] grid grid-cols-[34%_42%_24%]">
               <div className={`${mediaFirst ? "order-1" : "order-2"} bg-gradient-to-br from-slate-300 via-brand-200 to-slate-600`}>
                 <div className="flex h-full items-center justify-center text-xs font-bold uppercase tracking-wide text-white/85">Video / Imagen</div>
@@ -508,21 +568,25 @@ export default function Screens() {
                 <p className="text-[10px] font-bold" style={{ color: txt }}>{badge}</p>
                 <p className="relative mt-1 text-lg font-black leading-none">{headline}</p>
                 <div className="relative mt-3 flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center text-[9px] font-black" style={{ background: bg, color: accent, borderRadius: cr }}>{qrText}</div>
+                  <div className="flex h-12 w-12 items-center justify-center text-[9px] font-black" style={{ background: bg, color: accent, borderRadius: cr }}>{qrDisplay}</div>
                   <p className="text-[10px] leading-tight" style={{ color: txt }}>{subtitle}</p>
                 </div>
               </div>
-              <div className="order-3 p-4" style={{ background: wBg, color: "#fff" }}>
+              {showWeather && (
+              <div className="order-3 p-4" style={{ background: wBg, color: "#fff", fontFamily: ff }}>
                 <p className="text-sm font-black">{weatherLocation}</p>
                 <p className="mt-4 text-4xl">☁</p>
                 <p className="mt-2 text-2xl font-black">{temperature}</p>
                 <p className="text-[9px] text-white/75">Feels like 16°</p>
               </div>
+              )}
             </div>
+            {showTicker && (
             <div className="absolute inset-x-0 bottom-0 h-[17%] flex items-center gap-3 px-4" style={tickerStyle}>
-              <div className="text-2xl font-black" style={{ color: pc }}>{logoText}</div>
+              <div className="text-2xl font-black" style={{ color: pc }}>{logoDisplay}</div>
               <div className="truncate text-xs font-bold">{ticker}</div>
             </div>
+            )}
           </div>
         </div>
       );
@@ -532,20 +596,24 @@ export default function Screens() {
       return (
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-slate-950 p-2 shadow-inner">
           <div className="relative aspect-video overflow-hidden rounded-lg bg-black">
-            <div className="absolute inset-x-0 top-0 bottom-[20%] bg-gradient-to-br from-slate-300 via-brand-200 to-slate-600">
+            <div className="absolute inset-x-0 top-0 bottom-[20%]" style={{ background: slideBg }}>
               <div className="flex h-full items-center justify-center text-xs font-bold uppercase tracking-wide text-white/85">Video / Imagen</div>
             </div>
             <div className="absolute inset-x-0 bottom-[6%] flex items-center gap-2 px-3 py-2 text-white" style={{ background: `${pc}88` }}>
               <span className="text-[7px] font-bold opacity-90">{badge}</span>
               <span className="text-[10px] font-black">{headline}</span>
+              {showWeather && (
               <span className="ml-auto flex items-center gap-1 text-[7px] opacity-75">
                 <span>☁</span> {temperature}
               </span>
+              )}
             </div>
+            {showTicker && (
             <div className="absolute inset-x-0 bottom-0 h-[6%] flex items-center gap-2 px-3" style={tickerStyle}>
-              <span className="text-xs font-black" style={{ color: pc }}>{logoText}</span>
+              <span className="text-xs font-black" style={{ color: pc }}>{logoDisplay}</span>
               <span className="truncate text-[7px] font-bold">{ticker}</span>
             </div>
+            )}
           </div>
         </div>
       );
@@ -554,7 +622,7 @@ export default function Screens() {
     return (
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-slate-950 p-2 shadow-inner">
         <div className="relative aspect-video overflow-hidden rounded-lg bg-black">
-          <div className="absolute inset-0 bg-gradient-to-br from-slate-300 via-brand-200 to-slate-600">
+          <div className="absolute inset-0" style={{ background: slideBg }}>
             <div className="flex h-full items-center justify-center text-xs font-bold uppercase tracking-wide text-white/85">Video / Imagen</div>
           </div>
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-3 pb-2 pt-8 text-white">
@@ -562,15 +630,19 @@ export default function Screens() {
             <p className="text-xs font-black leading-tight">{headline}</p>
             <p className="mt-0.5 text-[7px] text-white/70">{subtitle}</p>
           </div>
-          <div className="absolute right-1 top-1 flex flex-col items-center px-1.5 py-0.5 text-white" style={{ background: wBg, borderRadius: cr }}>
+          {showWeather && (
+          <div className="absolute right-1 top-1 flex flex-col items-center px-1.5 py-0.5 text-white" style={{ background: wBg, borderRadius: cr, fontFamily: ff }}>
             <span className="text-[6px] font-bold">{weatherLocation}</span>
             <span className="text-xs">☁</span>
             <span className="text-[9px] font-black">{temperature}</span>
           </div>
+          )}
+          {showTicker && (
           <div className="absolute inset-x-0 bottom-0 h-[12%] flex items-center gap-2 px-3" style={tickerStyle}>
-            <span className="text-xs font-black" style={{ color: pc }}>{logoText}</span>
+            <span className="text-xs font-black" style={{ color: pc }}>{logoDisplay}</span>
             <span className="truncate text-[7px] font-bold">{ticker}</span>
           </div>
+          )}
         </div>
       </div>
     );
@@ -954,6 +1026,132 @@ export default function Screens() {
                       </div>
                     </div>
                   </div>
+                </div>
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="label mb-2">Extras — URLs</label>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div>
+                    <input className="input" value={form.templateQrUrl}
+                      onChange={(e) => setForm({ ...form, templateQrUrl: e.target.value })}
+                      placeholder="https://ejemplo.com" />
+                    <p className="mt-1 text-xs text-gray-400">URL para código QR (reemplaza el texto QR).</p>
+                  </div>
+                  <div>
+                    <input className="input" value={form.templateLogoUrl}
+                      onChange={(e) => setForm({ ...form, templateLogoUrl: e.target.value })}
+                      placeholder="https://ejemplo.com/logo.png" />
+                    <p className="mt-1 text-xs text-gray-400">URL de imagen para el logo (reemplaza el texto).</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="label mb-2">Comportamiento</label>
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-4">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+                    <div>
+                      <label className="text-xs font-medium text-gray-500">Velocidad del ticker</label>
+                      <select className="input mt-1" value={form.templateTickerSpeed}
+                        onChange={(e) => setForm({ ...form, templateTickerSpeed: e.target.value })}>
+                        <option value="slow">Lenta</option>
+                        <option value="normal">Normal</option>
+                        <option value="fast">Rápida</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500">Transición</label>
+                      <select className="input mt-1" value={form.templateTransition}
+                        onChange={(e) => setForm({ ...form, templateTransition: e.target.value })}>
+                        <option value="none">Ninguna</option>
+                        <option value="fade">Fundido</option>
+                        <option value="slide">Deslizar</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500">Ajuste de imagen</label>
+                      <select className="input mt-1" value={form.templateMediaFit}
+                        onChange={(e) => setForm({ ...form, templateMediaFit: e.target.value })}>
+                        <option value="cover">Cubrir (recortar)</option>
+                        <option value="contain">Contener (ajustar)</option>
+                        <option value="fill">Rellenar (estirar)</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500">Escala (ancho)</label>
+                      <input className="input mt-1" value={form.templateFontSizeScale}
+                        onChange={(e) => setForm({ ...form, templateFontSizeScale: e.target.value })}
+                        placeholder="1.0" />
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-4">
+                    <label className="flex items-center gap-2 text-sm text-gray-700">
+                      <input type="checkbox" className="rounded border-gray-300 text-brand-600"
+                        checked={form.templateShowWeather !== "no"}
+                        onChange={(e) => setForm({ ...form, templateShowWeather: e.target.checked ? "yes" : "no" })} />
+                      Mostrar clima
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-gray-700">
+                      <input type="checkbox" className="rounded border-gray-300 text-brand-600"
+                        checked={form.templateShowTicker !== "no"}
+                        onChange={(e) => setForm({ ...form, templateShowTicker: e.target.checked ? "yes" : "no" })} />
+                      Mostrar ticker inferior
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="label mb-2">Fondo degradado</label>
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                    <div>
+                      <label className="text-xs font-medium text-gray-500">Color inicial</label>
+                      <div className="mt-1 flex items-center gap-2">
+                        <input type="color" className="h-9 w-9 cursor-pointer rounded border border-gray-300"
+                          value={form.templateGradientColor1 || "#ffffff"}
+                          onChange={(e) => setForm({ ...form, templateGradientColor1: e.target.value })} />
+                        <input className="input flex-1" placeholder="#ffffff"
+                          value={form.templateGradientColor1}
+                          onChange={(e) => setForm({ ...form, templateGradientColor1: e.target.value })} />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500">Color final</label>
+                      <div className="mt-1 flex items-center gap-2">
+                        <input type="color" className="h-9 w-9 cursor-pointer rounded border border-gray-300"
+                          value={form.templateGradientColor2 || "#e5e7eb"}
+                          onChange={(e) => setForm({ ...form, templateGradientColor2: e.target.value })} />
+                        <input className="input flex-1" placeholder="#e5e7eb"
+                          value={form.templateGradientColor2}
+                          onChange={(e) => setForm({ ...form, templateGradientColor2: e.target.value })} />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-gray-500">Dirección</label>
+                      <select className="input mt-1" value={form.templateGradientDirection}
+                        onChange={(e) => setForm({ ...form, templateGradientDirection: e.target.value })}>
+                        <option value="to_bottom">⬇ Hacia abajo</option>
+                        <option value="to_right">➡ Hacia la derecha</option>
+                        <option value="to_bottom_right">↘ Diagonal</option>
+                        <option value="to_left">⬅ Hacia la izquierda</option>
+                        <option value="to_top">⬆ Hacia arriba</option>
+                      </select>
+                    </div>
+                  </div>
+                  <p className="mt-2 text-xs text-gray-400">Si ambos colores están vacíos se usa el color de fondo sólido.</p>
+                </div>
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="label mb-2">CSS personalizado</label>
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                  <textarea className="input font-mono text-xs" rows={4}
+                    value={form.templateCustomCSS}
+                    onChange={(e) => setForm({ ...form, templateCustomCSS: e.target.value })}
+                    placeholder=".tpl-headline { text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }" />
+                  <p className="mt-1 text-xs text-gray-400">Se inyecta dentro del slide en el player. Solo para usuarios avanzados.</p>
                 </div>
               </div>
             </div>
