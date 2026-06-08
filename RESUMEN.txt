@@ -1,0 +1,167 @@
+═══════════════════════════════════════════════════════════════
+  SCREEN CLOUD LOCAL — Resumen del proyecto
+═══════════════════════════════════════════════════════════════
+
+1. ARQUITECTURA
+─────────────────
+
+  web/        → React + Vite + TypeScript (interfaz de administración)
+  server/     → Fastify + PostgreSQL + Drizzle ORM (API + WebSocket)
+  player/     → HTML/CSS/JS vanilla (pantalla de señalización)
+  docker-compose.yml → PostgreSQL + Redis + API (opcional)
+
+  Puerto 5173 → Web UI (dev)
+  Puerto 3000  → API + WebSocket + Player
+
+  La web en dev usa proxy de Vite para llamar a la API.
+  El player llama directamente a la API (mismo origen).
+
+───────────────────────────────────────────────────────────────
+
+2. CAMBIOS REALIZADOS (commits)
+─────────────────────────────────
+
+  a) Template editor — personalización visual
+     ─ 7 colores, tipografía, escala, bordes redondeados
+     ─ Web: formularios con previsualización en tiempo real
+     ─ Player: CSS custom properties (--tpl-*) aplicadas inline
+
+  b) Comportamiento, gradiente, CSS custom, QR/logo
+     ─ Ticker speed (lento/normal/rápido)
+     ─ Transiciones (fade/slide)
+     ─ Media fit (cover/contain/fill)
+     ─ Mostrar/ocultar clima y ticker
+     ─ Fondo degradado (2 colores + dirección)
+     ─ CSS personalizado (se inyecta dentro del slide)
+     ─ QR URL (genera código QR con API externa)
+     ─ Logo URL (imagen en lugar de texto)
+     ─ Player: marquee animado para ticker
+
+  c) MinIO eliminado — almacenamiento local
+     ─ server/src/minio/ reemplazado por server/src/storage/
+     ─ Los archivos se guardan en server/uploads/
+     ─ Misma API, mismo comportamiento, cero dependencias externas
+     ─ docker-compose.yml simplificado (sin MinIO)
+
+  d) Preparación para deploy (no usado)
+     ─ VITE_API_URL configurable
+     ─ Player con ?api= para apuntar a servidor remoto
+     ─ GitHub Actions workflow
+     ─ Migraciones automáticas al iniciar el servidor
+
+───────────────────────────────────────────────────────────────
+
+3. CÓMO LEVANTAR LOCAL
+─────────────────────────
+
+  Prerrequisitos:
+    - Node.js 20+
+    - PostgreSQL corriendo (o Docker)
+    - Redis (opcional, el caché falla silenciosamente)
+
+  Servidor (API + WebSocket + Player):
+    cd server
+    cp ../.env.example .env   # editar DATABASE_URL
+    npm install
+    npm run dev                # tsx watch, reinicia solo
+
+  Web UI:
+    cd web
+    npm install
+    npm run dev                # Vite dev server en :5173
+
+  O con Docker:
+    docker compose up -d       # PostgreSQL + Redis + API
+
+───────────────────────────────────────────────────────────────
+
+4. VARIABLES DE ENTORNO (server/.env)
+────────────────────────────────────────
+
+  PORT=3000
+  HOST=0.0.0.0
+  NODE_ENV=development
+
+  DATABASE_URL=postgres://signage:signage@localhost:5432/signage
+
+  REDIS_URL=redis://localhost:6379    (opcional, vacío funciona)
+
+  UPLOAD_DIR=./uploads                (reemplaza a MinIO)
+
+  JWT_SECRET=change-me-to-a-random-secret
+  JWT_EXPIRES_IN=7d
+
+  DEFAULT_ORG_NAME=Mi Empresa
+
+───────────────────────────────────────────────────────────────
+
+5. PLAYER EN TV REMOTO (opcional)
+────────────────────────────────────
+
+  Si algún día querés probar en un TV lejano:
+
+    1. Exponer la API con ngrok:
+         ngrok http 3000
+
+    2. Abrir el TV en:
+         https://player-host/path/player/?api=https://tungrok.ngrok.app
+
+    El parámetro ?api= se guarda en localStorage, solo hace falta
+    una vez.
+
+───────────────────────────────────────────────────────────────
+
+6. FLUJO DE DATOS
+───────────────────
+
+  Web crea/edita pantalla → PUT /api/screens/:id
+  → settings se guarda como JSONB
+  → WebSocket notifica al player
+  → Player repinta con los nuevos estilos
+
+  Player solicita contenido → GET /api/player/:screenId
+  → Devuelve playlist activa + templateStyle
+  → Player renderiza en bucle
+
+───────────────────────────────────────────────────────────────
+
+7. CARPETAS IMPORTANTES
+─────────────────────────
+
+  server/src/
+    storage/        → Almacenamiento local (reemplaza MinIO)
+    config/         → Variables de entorno
+    db/             → Schema + migraciones Drizzle
+    modules/
+      player/       → Rutas del player API
+      screens/      → CRUD de pantallas + WS
+      media/        → Upload/serve de archivos
+      content/      → Gestión de contenido
+      playlists/    → Listas de reproducción
+      schedules/    → Programaciones
+    ws.ts           → WebSocket central
+
+  player/
+    index.html      → Player (HTML+CSS+JS vanilla)
+
+  web/src/
+    lib/api.ts      → Cliente API
+    pages/Screens.tsx → Editor de pantallas
+
+───────────────────────────────────────────────────────────────
+
+8. NOTAS TÉCNICAS
+───────────────────
+
+  - settings es JSONB: cualquier campo nuevo se agrega sin
+    migración de base de datos
+
+  - El player usa CSS custom properties (--tpl-*) para aplicar
+    estilos sin recargar la página
+
+  - Las migraciones de Drizzle corren automáticamente al
+    iniciar el servidor
+
+  - La eliminación de MinIO simplificó el stack:
+    antes: Node + PostgreSQL + Redis + MinIO (4 servicios)
+    ahora:  Node + PostgreSQL + Redis (3, Redis opcional)
