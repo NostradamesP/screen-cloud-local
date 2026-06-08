@@ -1,8 +1,15 @@
 import React, { useEffect, useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { api } from "@/lib/api";
-import { Monitor, Image, ListVideo, Calendar, Wifi, WifiOff, Play, Pause, Building2, CalendarDays, Info, UtensilsCrossed, DoorOpen, Presentation, Gauge } from "lucide-react";
+import { Monitor, Image, ListVideo, Calendar, Wifi, WifiOff, Play, Pause, Building2, CalendarDays, Info, UtensilsCrossed, DoorOpen, Presentation, Gauge, Factory, ShoppingBag, HeartPulse } from "lucide-react";
 
 const PURPOSE_ICONS: Record<string, any> = {
+  manufacturing_logistics: Factory,
+  office_communications: Building2,
+  cafeteria_restaurant: UtensilsCrossed,
+  retail_promotions: ShoppingBag,
+  healthcare: HeartPulse,
+  public_information: Info,
   office: Building2,
   events: CalendarDays,
   public_info: Info,
@@ -14,6 +21,12 @@ const PURPOSE_ICONS: Record<string, any> = {
 };
 
 const PURPOSE_LABELS: Record<string, string> = {
+  manufacturing_logistics: "Manufacturing & Logistics",
+  office_communications: "Office Communications",
+  cafeteria_restaurant: "Cafeteria & Restaurant",
+  retail_promotions: "Retail Promotions",
+  healthcare: "Healthcare",
+  public_information: "Public Information",
   office: "Oficina",
   events: "Eventos",
   public_info: "Información Pública",
@@ -25,6 +38,7 @@ const PURPOSE_LABELS: Record<string, string> = {
 };
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [stats, setStats] = useState({ screens: 0, content: 0, playlists: 0, schedules: 0 });
   const [nowPlaying, setNowPlaying] = useState<any[]>([]);
   const [loadingNow, setLoadingNow] = useState(true);
@@ -70,7 +84,7 @@ export default function Dashboard() {
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Dashboard</h1>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {cards.map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="card flex items-center gap-4">
+          <button key={label} onClick={() => navigate("/screens")} className="card flex items-center gap-4 text-left transition-all hover:-translate-y-0.5 hover:shadow-md">
             <div className={`flex h-12 w-12 items-center justify-center rounded-lg ${color}`}>
               <Icon className="h-6 w-6" />
             </div>
@@ -78,7 +92,7 @@ export default function Dashboard() {
               <p className="text-2xl font-bold text-gray-900">{value}</p>
               <p className="text-sm text-gray-500">{label}</p>
             </div>
-          </div>
+          </button>
         ))}
       </div>
 
@@ -90,7 +104,7 @@ export default function Dashboard() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {nowPlaying.map((s: any) => (
-            <div key={s.screenId} className="card">
+            <button key={s.screenId} onClick={() => navigate("/screens")} className="card w-full text-left transition-all hover:-translate-y-0.5 hover:shadow-md">
               <div className="flex items-start justify-between mb-2">
                 <div className="flex items-center gap-3">
                   <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${s.status === "online" ? "bg-green-50" : "bg-gray-100"}`}>
@@ -126,7 +140,7 @@ export default function Dashboard() {
               ) : (
                 <p className="text-sm text-gray-400 italic">Sin contenido activo</p>
               )}
-            </div>
+            </button>
           ))}
         </div>
       )}

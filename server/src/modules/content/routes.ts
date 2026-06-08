@@ -58,6 +58,7 @@ export async function contentRoutes(fastify: FastifyInstance) {
       settings: body.settings as Record<string, unknown> ?? {},
     }).returning();
     logAudit({ orgId, userId: request.user.userId, action: "create", entityType: "content", entityId: item.id });
+    fastify.wsNotifier.notifyAllScreens({ type: "content_update" });
     return reply.status(201).send(item);
   });
 
@@ -78,6 +79,7 @@ export async function contentRoutes(fastify: FastifyInstance) {
     if (!updated) return reply.status(404).send({ error: "Content not found" });
     logAudit({ orgId, userId: request.user.userId, action: "update", entityType: "content", entityId: id, changes: updateData });
     cacheDel("player:*");
+    fastify.wsNotifier.notifyAllScreens({ type: "content_update" });
     return updated;
   });
 
@@ -92,6 +94,7 @@ export async function contentRoutes(fastify: FastifyInstance) {
     if (!deleted) return reply.status(404).send({ error: "Content not found" });
     logAudit({ orgId, userId: request.user.userId, action: "delete", entityType: "content", entityId: id });
     cacheDel("player:*");
+    fastify.wsNotifier.notifyAllScreens({ type: "content_update" });
     return reply.status(204).send();
   });
 }

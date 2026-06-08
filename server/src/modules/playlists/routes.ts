@@ -57,6 +57,7 @@ export async function playlistRoutes(fastify: FastifyInstance) {
     }).returning();
     logAudit({ orgId, userId: request.user.userId, action: "create", entityType: "playlist", entityId: playlist.id });
     cacheDel("player:*");
+    fastify.wsNotifier.notifyAllScreens({ type: "playlist_update" });
     return reply.status(201).send(playlist);
   });
 
@@ -73,6 +74,7 @@ export async function playlistRoutes(fastify: FastifyInstance) {
     if (!updated) return reply.status(404).send({ error: "Playlist not found" });
     logAudit({ orgId, userId: request.user.userId, action: "update", entityType: "playlist", entityId: id });
     cacheDel("player:*");
+    fastify.wsNotifier.notifyAllScreens({ type: "playlist_update" });
     return updated;
   });
 
@@ -87,6 +89,7 @@ export async function playlistRoutes(fastify: FastifyInstance) {
     if (!deleted) return reply.status(404).send({ error: "Playlist not found" });
     logAudit({ orgId, userId: request.user.userId, action: "delete", entityType: "playlist", entityId: id });
     cacheDel("player:*");
+    fastify.wsNotifier.notifyAllScreens({ type: "playlist_update" });
     return reply.status(204).send();
   });
 
@@ -106,6 +109,8 @@ export async function playlistRoutes(fastify: FastifyInstance) {
       position: body.position,
       durationOverride: body.durationOverride,
     }).returning();
+    cacheDel("player:*");
+    fastify.wsNotifier.notifyAllScreens({ type: "playlist_update" });
     return reply.status(201).send(item);
   });
 
@@ -124,6 +129,8 @@ export async function playlistRoutes(fastify: FastifyInstance) {
         .set({ position: item.position })
         .where(and(eq(playlistItems.id, item.id), eq(playlistItems.playlistId, playlistId)));
     }
+    cacheDel("player:*");
+    fastify.wsNotifier.notifyAllScreens({ type: "playlist_update" });
     return reply.status(200).send({ ok: true });
   });
 
@@ -138,6 +145,7 @@ export async function playlistRoutes(fastify: FastifyInstance) {
     if (!deleted) return reply.status(404).send({ error: "Item not found" });
     logAudit({ orgId, userId: request.user.userId, action: "delete", entityType: "playlist_item", entityId: itemId });
     cacheDel("player:*");
+    fastify.wsNotifier.notifyAllScreens({ type: "playlist_update" });
     return reply.status(204).send();
   });
 }

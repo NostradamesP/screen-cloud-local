@@ -18,8 +18,8 @@ export default function Layout() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Sidebar />
-      <main className="pl-[--sidebar-width] min-h-screen">
-        <div className="p-6 lg:p-8">
+      <main className="min-h-screen pt-24">
+        <div className="px-4 pb-8 sm:px-6 lg:px-8">
           <Outlet />
         </div>
       </main>

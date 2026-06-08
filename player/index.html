@@ -7,7 +7,13 @@
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html, body { width: 100%; height: 100%; overflow: hidden; background: #000; color: #fff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+body { --purpose-color: #64748b; --purpose-color-2: #0f172a; --purpose-glow: rgba(100,116,139,0.35); }
 #app { width: 100%; height: 100%; position: relative; }
+#app::before { content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none; background:
+  radial-gradient(circle at 20% 12%, var(--purpose-glow), transparent 34%),
+  linear-gradient(135deg, rgba(0,0,0,0.55), rgba(0,0,0,0.92));
+  opacity: 0; transition: opacity 0.5s ease; }
+body.player-idle #app::before, body.player-pairing #app::before { opacity: 1; }
 .slide { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; }
 .slide.active { display: flex; align-items: center; justify-content: center; }
 .slide iframe { width: 100%; height: 100%; border: 0; }
@@ -15,8 +21,64 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; colo
 .slide video { width: 100%; height: 100%; object-fit: contain; }
 .slide .html-content { width: 100%; height: 100%; padding: 40px; overflow: auto; }
 .slide .rss-content { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; flex-direction: column; padding: 40px; text-align: center; }
+.slide {
+  --tpl-primary: var(--purpose-color, #64748b);
+  --tpl-bg: #ffffff;
+  --tpl-text: #111827;
+  --tpl-ticker-bg: #ffffff;
+  --tpl-ticker-text: #0f172a;
+  --tpl-widget-bg: color-mix(in srgb, var(--tpl-primary) 78%, #ffffff);
+  --tpl-accent: #244244;
+  --tpl-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --tpl-radius: 4px; }
+.slide.template-media_left, .slide.template-media_right,
+.slide.template-center_stage, .slide.template-hero_overlay {
+  display: grid; grid-template-rows: 82% 18%; align-items: stretch; justify-content: stretch; background: var(--tpl-bg); color: var(--tpl-text); font-family: var(--tpl-font); }
+.tpl-grid { display: grid; grid-template-columns: 34% 42% 24%; height: 100%; min-height: 0; border: 2px solid var(--tpl-accent); border-bottom: 0; }
+.template-media_right .tpl-grid { grid-template-columns: 42% 34% 24%; }
+.tpl-media { min-width: 0; min-height: 0; overflow: hidden; background: #e5e7eb; }
+.tpl-media img, .tpl-media video, .tpl-media iframe { width: 100%; height: 100%; object-fit: cover; border: 0; }
+.tpl-sidebar { display: flex; flex-direction: column; justify-content: center; padding: 4vh 3vw; background: linear-gradient(135deg, color-mix(in srgb, var(--tpl-primary) 24%, var(--tpl-bg)), color-mix(in srgb, var(--tpl-primary) 54%, var(--tpl-bg))); }
+.tpl-sidebar, .tpl-sidebar .tpl-headline, .tpl-sidebar .tpl-subtitle { color: color-mix(in srgb, var(--tpl-primary) 45%, #064e3b); }
+.tpl-badge { font-size: clamp(0.8rem, 1.4vw, 1.4rem); font-weight: 900; color: rgba(255,255,255,0.95); }
+.tpl-headline { margin-top: 0.8vh; font-size: clamp(1.4rem, 3vw, 3.6rem); font-weight: 950; line-height: 0.96; }
+.tpl-subrow { display: flex; align-items: center; gap: 1.2vw; margin-top: 2.5vh; }
+.tpl-qr { display: flex; width: clamp(44px, 4.5vw, 64px); aspect-ratio: 1; align-items: center; justify-content: center; border-radius: var(--tpl-radius); background: var(--tpl-bg); color: var(--tpl-accent); font-weight: 950; font-size: clamp(0.45rem, 0.6vw, 0.7rem); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+.tpl-subtitle { font-size: clamp(0.7rem, 1.1vw, 1.3rem); line-height: 1.2; color: rgba(255,255,255,0.92); max-width: 34ch; }
+.tpl-weather-right { display: flex; flex-direction: column; justify-content: center; padding: 3vh 2vw; background: var(--tpl-widget-bg); color: var(--tpl-text); border-left: 6px solid var(--tpl-accent); }
+.tpl-wloc { font-size: clamp(0.9rem, 1.6vw, 1.8rem); font-weight: 950; }
+.tpl-wpill { display: inline-flex; margin-top: 0.8vh; border-radius: var(--tpl-radius); background: rgba(255,255,255,0.82); padding: 0.3em 0.6em; color: color-mix(in srgb, var(--tpl-primary) 72%, #0f172a); font-size: clamp(0.4rem, 0.55vw, 0.65rem); font-weight: 900; }
+.tpl-wicon { margin-top: 3vh; font-size: clamp(2rem, 4vw, 4.5rem); line-height: 1; }
+.tpl-wtemp { margin-top: 2.5vh; font-size: clamp(1.5rem, 3vw, 3.6rem); font-weight: 950; }
+.tpl-wfeel { font-size: clamp(0.5rem, 0.65vw, 0.8rem); font-weight: 800; opacity: 0.9; }
+.tpl-center { height: 100%; display: grid; grid-template-rows: 1fr auto; background: #000; }
+.tpl-center-media { overflow: hidden; min-height: 0; background: #e5e7eb; }
+.tpl-center-media img, .tpl-center-media video, .tpl-center-media iframe { width: 100%; height: 100%; object-fit: contain; border: 0; }
+.tpl-center-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 1vw; padding: 1.5vh 3vw; background: color-mix(in srgb, var(--tpl-primary) 66%, #0f172a); color: #fff; }
+.tpl-center-badge { font-size: clamp(0.6rem, 0.85vw, 0.95rem); font-weight: 800; opacity: 0.95; }
+.tpl-center-headline { font-size: clamp(0.9rem, 1.6vw, 2rem); font-weight: 950; }
+.tpl-center-sub { font-size: clamp(0.5rem, 0.75vw, 0.9rem); opacity: 0.8; }
+.tpl-center-qr { display: flex; width: clamp(28px, 2.2vw, 38px); aspect-ratio: 1; align-items: center; justify-content: center; background: rgba(255,255,255,0.18); border-radius: var(--tpl-radius); color: #fff; font-size: clamp(0.35rem, 0.45vw, 0.55rem); font-weight: 800; }
+.tpl-center-widget { margin-left: auto; font-size: clamp(0.55rem, 0.75vw, 0.9rem); font-weight: 700; opacity: 0.85; white-space: nowrap; }
+.tpl-hero { position: relative; height: 100%; overflow: hidden; }
+.tpl-hero-bg { position: absolute; inset: 0; z-index: 0; }
+.tpl-hero-bg img, .tpl-hero-bg video, .tpl-hero-bg iframe { width: 100%; height: 100%; object-fit: cover; border: 0; }
+.tpl-hero-overlay { position: absolute; inset: 0; z-index: 1; display: flex; flex-direction: column; justify-content: flex-end; padding: 5vh 4vw 3vh; background: linear-gradient(0deg, rgba(0,0,0,0.82) 30%, transparent); color: #fff; }
+.tpl-hero-badge { font-size: clamp(0.65rem, 1.1vw, 1.3rem); font-weight: 700; color: color-mix(in srgb, var(--tpl-primary) 70%, #fff); }
+.tpl-hero-headline { margin-top: 0.5vh; font-size: clamp(1.4rem, 3.2vw, 4rem); font-weight: 950; line-height: 0.96; }
+.tpl-hero-subrow { display: flex; align-items: center; gap: 1.2vw; margin-top: 1.5vh; }
+.tpl-hero-qr { display: flex; width: clamp(36px, 3vw, 48px); aspect-ratio: 1; align-items: center; justify-content: center; background: rgba(255,255,255,0.15); border-radius: var(--tpl-radius); color: #fff; font-size: clamp(0.35rem, 0.45vw, 0.6rem); font-weight: 800; }
+.tpl-hero-sub { font-size: clamp(0.65rem, 0.95vw, 1.2rem); color: rgba(255,255,255,0.85); }
+.tpl-hero-widget { position: absolute; top: 2vh; right: 2vw; z-index: 2; display: flex; flex-direction: column; align-items: center; border-radius: var(--tpl-radius); background: rgba(0,0,0,0.5); padding: 1vh 1.2vw; color: #fff; min-width: 7vw; backdrop-filter: blur(8px); text-align: center; }
+.tpl-hero-wloc { font-size: clamp(0.5rem, 0.65vw, 0.8rem); font-weight: 800; }
+.tpl-hero-wicon { font-size: clamp(1.2rem, 2.2vw, 2.6rem); line-height: 1; margin-top: 0.3vh; }
+.tpl-hero-wtemp { font-size: clamp(0.9rem, 1.6vw, 2rem); font-weight: 950; margin-top: 0.3vh; }
+.slide.template-full_bleed img, .slide.template-full_bleed video, .slide.template-full_bleed iframe { width: 100%; height: 100%; object-fit: cover; border: 0; }
+.tpl-ticker { display: flex; min-height: 0; align-items: center; gap: 2vw; border: 2px solid var(--tpl-accent); background: var(--tpl-ticker-bg); padding: 0 3vw; color: var(--tpl-ticker-text); }
+.tpl-ticker-logo { color: var(--tpl-primary); font-size: clamp(1.4rem, 2.6vw, 3rem); font-weight: 950; line-height: 1; }
+.tpl-ticker-text { overflow: hidden; white-space: nowrap; text-overflow: clip; font-size: clamp(0.8rem, 1.3vw, 1.6rem); font-weight: 850; }
 
-#pair-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(135deg, #0c4a6e, #0284c7); z-index: 100; }
+#pair-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(135deg, var(--purpose-color-2), var(--purpose-color)); z-index: 100; }
 #pair-screen.hidden { display: none; }
 #pair-screen h1 { font-size: 2em; margin-bottom: 10px; }
 #pair-screen p { font-size: 1.1em; opacity: 0.8; margin-bottom: 30px; }
@@ -24,34 +86,58 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; colo
 #pair-code-input::placeholder { color: rgba(255,255,255,0.4); letter-spacing: 2px; text-transform: none; }
 #pair-code-input:focus { border-color: #fff; }
 #pair-error { color: #fca5a5; margin-top: 12px; min-height: 20px; font-size: 0.9em; }
-#pair-btn { margin-top: 20px; padding: 12px 40px; border: none; border-radius: 8px; background: #fff; color: #0284c7; font-size: 1.1em; font-weight: 600; cursor: pointer; }
+#pair-btn { margin-top: 20px; padding: 12px 40px; border: none; border-radius: 8px; background: #fff; color: var(--purpose-color); font-size: 1.1em; font-weight: 600; cursor: pointer; }
 #pair-btn:hover { background: #f0f9ff; }
 
-#status-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 32px; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; font-size: 12px; color: rgba(255,255,255,0.6); z-index: 50; }
+#status-bar { position: fixed; right: 18px; bottom: 18px; z-index: 70; display: flex; align-items: center; justify-content: center; padding: 0; font-size: 12px; color: rgba(255,255,255,0.72); pointer-events: none; }
+#status-bar .status-left, #status-bar .status-screen, #status-bar .status-debug, #status-bar .status-clock { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+#status-bar .status-screen { flex: 1; justify-content: center; font-weight: 600; }
+#status-bar .status-debug { flex: 1; justify-content: flex-end; opacity: 0.65; }
+#status-bar .status-left,
+#status-bar .status-screen,
+#status-bar .status-debug,
+#status-bar .status-clock { display: none; }
 #status-bar .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
 #status-bar .status-dot.online { background: #22c55e; }
 #status-bar .status-dot.offline { background: #ef4444; }
 #status-bar .status-dot.connecting { background: #eab308; }
-#fs-btn { background: none; border: 1px solid rgba(255,255,255,0.3); color: rgba(255,255,255,0.6); border-radius: 4px; cursor: pointer; font-size: 11px; padding: 2px 6px; line-height: 1.4; }
-#fs-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+#fs-btn { background: rgba(0,0,0,0.34); border: 1px solid rgba(255,255,255,0.18); color: rgba(255,255,255,0.74); border-radius: 999px; cursor: pointer; font-size: 11px; padding: 7px 11px; line-height: 1.2; white-space: nowrap; pointer-events: auto; backdrop-filter: blur(12px); }
+#fs-btn:hover { background: rgba(255,255,255,0.18); color: #fff; }
+body.is-fullscreen #status-bar { right: 18px; bottom: 18px; }
+body.is-fullscreen #status-bar .status-left,
+body.is-fullscreen #status-bar .status-screen,
+body.is-fullscreen #status-bar .status-debug,
+body.is-fullscreen #status-bar .status-clock { display: none; }
+body.is-fullscreen #fs-btn { background: rgba(0,0,0,0.42); border-color: rgba(255,255,255,0.16); color: rgba(255,255,255,0.72); }
 
 .transition-fade .slide { transition: opacity 0.8s ease; }
 .transition-slide .slide { transition: transform 0.8s ease; }
 
-#purpose-bar { position: fixed; top: 0; left: 0; right: 0; height: 4px; z-index: 60; background: #6b7280; transition: background 0.5s ease; }
-.purpose-office #purpose-bar { background: #3b82f6; }
-.purpose-events #purpose-bar { background: #8b5cf6; }
-.purpose-public_info #purpose-bar { background: #10b981; }
-.purpose-menu_board #purpose-bar { background: #f59e0b; }
-.purpose-lobby #purpose-bar { background: #ec4899; }
-.purpose-meeting_room #purpose-bar { background: #06b6d4; }
-.purpose-production #purpose-bar { background: #ef4444; }
-.purpose-other #purpose-bar { background: #6b7280; }
+#purpose-bar { position: fixed; top: 0; left: 0; right: 0; height: 5px; z-index: 60; background: var(--purpose-color); box-shadow: 0 0 28px var(--purpose-glow); transition: background 0.5s ease, box-shadow 0.5s ease; }
+#purpose-overlay { position: fixed; top: 18px; left: 18px; z-index: 55; display: none; align-items: center; gap: 10px; border: 1px solid color-mix(in srgb, var(--purpose-color) 58%, transparent); border-radius: 999px; background: color-mix(in srgb, var(--purpose-color) 24%, rgba(0,0,0,0.52)); box-shadow: 0 16px 60px var(--purpose-glow); padding: 8px 13px; font-size: 12px; font-weight: 800; letter-spacing: 0.02em; color: #fff; backdrop-filter: blur(16px); }
+#purpose-overlay-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--purpose-color); box-shadow: 0 0 18px var(--purpose-color); }
+body.player-playing #purpose-overlay { display: inline-flex; }
+body.player-pairing #purpose-overlay { display: none; }
+body.template-signage.player-playing #purpose-overlay { display: none; }
+.purpose-manufacturing_logistics { --purpose-color: #ef4444; --purpose-color-2: #7f1d1d; --purpose-glow: rgba(239,68,68,0.38); }
+.purpose-office_communications { --purpose-color: #3b82f6; --purpose-color-2: #0f3b82; --purpose-glow: rgba(59,130,246,0.38); }
+.purpose-cafeteria_restaurant { --purpose-color: #f59e0b; --purpose-color-2: #78350f; --purpose-glow: rgba(245,158,11,0.42); }
+.purpose-retail_promotions { --purpose-color: #ec4899; --purpose-color-2: #831843; --purpose-glow: rgba(236,72,153,0.4); }
+.purpose-healthcare { --purpose-color: #14b8a6; --purpose-color-2: #134e4a; --purpose-glow: rgba(20,184,166,0.38); }
+.purpose-events { --purpose-color: #8b5cf6; --purpose-color-2: #3b1678; --purpose-glow: rgba(139,92,246,0.42); }
+.purpose-public_information { --purpose-color: #10b981; --purpose-color-2: #064e3b; --purpose-glow: rgba(16,185,129,0.36); }
+.purpose-other { --purpose-color: #64748b; --purpose-color-2: #0f172a; --purpose-glow: rgba(100,116,139,0.35); }
+.idle-card { position: relative; z-index: 1; display: flex; min-width: 320px; max-width: 720px; flex-direction: column; align-items: center; gap: 14px; border: 1px solid rgba(255,255,255,0.14); border-radius: 24px; background: rgba(15,23,42,0.58); padding: 42px 56px; box-shadow: 0 24px 80px rgba(0,0,0,0.36); text-align: center; backdrop-filter: blur(18px); }
+.idle-card h2 { font-size: clamp(2rem, 5vw, 4.2rem); line-height: 1; }
+.idle-purpose { display: inline-flex; align-items: center; gap: 8px; border-radius: 999px; background: color-mix(in srgb, var(--purpose-color) 22%, transparent); border: 1px solid color-mix(in srgb, var(--purpose-color) 55%, transparent); color: #fff; padding: 8px 14px; font-size: 0.9rem; font-weight: 700; letter-spacing: 0.02em; }
+.idle-purpose-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--purpose-color); box-shadow: 0 0 18px var(--purpose-color); }
+.idle-muted { color: rgba(255,255,255,0.58); font-size: 1rem; }
 </style>
 </head>
-<body>
+<body class="player-pairing purpose-other">
 <div id="app">
   <div id="purpose-bar"></div>
+  <div id="purpose-overlay"><span id="purpose-overlay-dot"></span><span id="purpose-overlay-label">Other</span></div>
   <div id="player-container"></div>
   <div id="pair-screen">
     <h1>Signage Player</h1>
@@ -61,11 +147,11 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; colo
     <div id="pair-error"></div>
   </div>
   <div id="status-bar">
-    <span><span class="status-dot offline" id="status-dot"></span> <span id="status-text">Desconectado</span></span>
-    <span id="screen-name"></span> <span id="purpose-label" style="font-size:10px;opacity:0.5;"></span>
-    <span id="debug-info" style="font-size:10px;opacity:0.5;"></span>
+    <span class="status-left"><span class="status-dot offline" id="status-dot"></span> <span id="status-text">Desconectado</span></span>
+    <span class="status-screen"><span id="screen-name"></span> <span id="purpose-label" style="font-size:10px;opacity:0.65;"></span></span>
+    <span class="status-debug" id="debug-info" style="font-size:10px;"></span>
     <button id="fs-btn">⛶ Pantalla completa</button>
-    <span id="time-display"></span>
+    <span class="status-clock" id="time-display"></span>
   </div>
 </div>
 <script>
@@ -87,9 +173,21 @@ if ('serviceWorker' in navigator) {
   var currentIndex = 0;
   var items = [];
   var rotationTimer = null;
+  var pollTimer = null;
   var ws = null;
   var heartbeatTimer = null;
   var videoElement = null;
+  var currentPurpose = 'other';
+  var currentTemplate = 'full_bleed';
+  var currentTemplateText = { badge: '', headline: '', subtitle: '' };
+  var currentTemplateStyle = {};
+  var FONT_FAMILIES = {
+    system: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    sans: 'Inter, "Helvetica Neue", Arial, sans-serif',
+    serif: 'Georgia, "Times New Roman", serif',
+    mono: '"SF Mono", "Fira Code", "Cascadia Code", monospace',
+    display: '"Poppins", "SF Pro Display", system-ui, sans-serif',
+  };
 
   // --- DOM refs ---
   var container = document.getElementById('player-container');
@@ -101,22 +199,75 @@ if ('serviceWorker' in navigator) {
   var statusText = document.getElementById('status-text');
   var screenNameEl = document.getElementById('screen-name');
   var purposeLabelEl = document.getElementById('purpose-label');
+  var purposeOverlayLabelEl = document.getElementById('purpose-overlay-label');
   var timeDisplay = document.getElementById('time-display');
 
   var PURPOSE_LABELS = {
-    office: 'Oficina',
-    events: 'Eventos',
-    public_info: 'Info. Pública',
-    menu_board: 'Menú Digital',
-    lobby: 'Lobby',
-    meeting_room: 'Sala Reuniones',
-    production: 'Producción',
-    other: 'Otro',
+    manufacturing_logistics: 'Manufacturing & Logistics',
+    office_communications: 'Office Communications',
+    cafeteria_restaurant: 'Cafeteria & Restaurant',
+    retail_promotions: 'Retail Promotions',
+    healthcare: 'Healthcare',
+    events: 'Events',
+    public_information: 'Public Information',
+    other: 'Other',
+    office: 'Office Communications',
+    public_info: 'Public Information',
+    menu_board: 'Cafeteria & Restaurant',
+    lobby: 'Office Communications',
+    meeting_room: 'Office Communications',
+    production: 'Manufacturing & Logistics',
   };
+  var LEGACY_PURPOSES = {
+    office: 'office_communications',
+    public_info: 'public_information',
+    menu_board: 'cafeteria_restaurant',
+    lobby: 'office_communications',
+    meeting_room: 'office_communications',
+    production: 'manufacturing_logistics'
+  };
+  function normalizePurpose(purpose) {
+    return LEGACY_PURPOSES[purpose] || purpose || 'other';
+  }
   function applyPurpose(purpose) {
-    var cls = 'purpose-' + (purpose || 'other');
-    document.body.className = cls;
-    if (purposeLabelEl) purposeLabelEl.textContent = PURPOSE_LABELS[purpose] || purpose || '';
+    var nextPurpose = normalizePurpose(purpose);
+    if (!PURPOSE_LABELS[nextPurpose]) nextPurpose = 'other';
+    currentPurpose = nextPurpose;
+    var classes = document.body.className ? document.body.className.split(/\s+/) : [];
+    var kept = [];
+    for (var i = 0; i < classes.length; i++) {
+      if (classes[i] && classes[i].indexOf('purpose-') !== 0) kept.push(classes[i]);
+    }
+    kept.push('purpose-' + nextPurpose);
+    document.body.className = kept.join(' ');
+    if (purposeLabelEl) purposeLabelEl.textContent = PURPOSE_LABELS[nextPurpose] || nextPurpose;
+    if (purposeOverlayLabelEl) purposeOverlayLabelEl.textContent = PURPOSE_LABELS[nextPurpose] || nextPurpose;
+  }
+  function applyTemplate(template) {
+    currentTemplate = template || 'full_bleed';
+    document.body.classList.toggle('template-signage', currentTemplate !== 'full_bleed');
+  }
+  function applyTemplateText(templateText) {
+    currentTemplateText = {
+      badge: templateText && templateText.badge ? String(templateText.badge) : '',
+      headline: templateText && templateText.headline ? String(templateText.headline) : '',
+      subtitle: templateText && templateText.subtitle ? String(templateText.subtitle) : '',
+      qrText: templateText && templateText.qrText ? String(templateText.qrText) : '',
+      weatherLocation: templateText && templateText.weatherLocation ? String(templateText.weatherLocation) : '',
+      temperature: templateText && templateText.temperature ? String(templateText.temperature) : '',
+      ticker: templateText && templateText.ticker ? String(templateText.ticker) : '',
+      logoText: templateText && templateText.logoText ? String(templateText.logoText) : '',
+    };
+  }
+  function applyTemplateStyle(templateStyle) {
+    currentTemplateStyle = {};
+    if (templateStyle && typeof templateStyle === 'object') {
+      for (var key in templateStyle) {
+        if (templateStyle[key] != null && templateStyle[key] !== '') {
+          currentTemplateStyle[key] = String(templateStyle[key]);
+        }
+      }
+    }
   }
 
   // --- Clock ---
@@ -163,8 +314,13 @@ if ('serviceWorker' in navigator) {
       if (data.error) throw new Error(data.error);
       screenId = data.id;
       localStorage.setItem('signage_screen_id', screenId);
+      if (window.history && window.history.replaceState) {
+        window.history.replaceState({}, document.title, '/player');
+      }
       pairScreen.classList.add('hidden');
+      document.body.classList.remove('player-pairing');
       screenNameEl.textContent = data.name;
+      if (data.purpose) applyPurpose(data.purpose);
       startPlayer();
     })
     .catch(function (err) {
@@ -183,7 +339,8 @@ if ('serviceWorker' in navigator) {
     connectWebSocket();
     fetchPlaylist();
     startHeartbeat();
-    setInterval(fetchPlaylist, POLL_INTERVAL);
+    if (pollTimer) clearInterval(pollTimer);
+    pollTimer = setInterval(fetchPlaylist, POLL_INTERVAL);
   }
 
   function fetchPlaylist() {
@@ -197,8 +354,16 @@ if ('serviceWorker' in navigator) {
       .then(function (data) {
         var count = data.items ? data.items.length : 0;
         setDebug('Items: ' + count + ' | ' + (data.message || ''));
-        if (data.screen && data.screen.purpose) applyPurpose(data.screen.purpose);
+        if (data.screen) {
+          if (data.screen.name) screenNameEl.textContent = data.screen.name;
+          applyPurpose(data.screen.purpose);
+          applyTemplate(data.screen.template);
+          applyTemplateText(data.screen.templateText);
+          applyTemplateStyle(data.screen.templateStyle);
+        }
         if (data.items && data.items.length > 0) {
+          document.body.classList.remove('player-idle');
+          document.body.classList.add('player-playing');
           items = data.items;
           currentIndex = 0;
           renderCurrent();
@@ -209,6 +374,12 @@ if ('serviceWorker' in navigator) {
       })
       .catch(function (err) {
         setDebug('Error: ' + (err.message || 'unknown'));
+        var msg = (err.message || '');
+        if (msg.indexOf('HTTP 404') !== -1) {
+          localStorage.removeItem('signage_screen_id');
+          location.reload();
+          return;
+        }
         showIdle();
       });
   }
@@ -219,7 +390,23 @@ if ('serviceWorker' in navigator) {
     if (!item || !item.content) return;
     container.innerHTML = '';
     var div = document.createElement('div');
-    div.className = 'slide active';
+    div.className = 'slide active template-' + currentTemplate;
+    (function applyStyle(el, style) {
+      if (!style) return;
+      if (style.primaryColor) el.style.setProperty('--tpl-primary', style.primaryColor);
+      if (style.bgColor) el.style.setProperty('--tpl-bg', style.bgColor);
+      if (style.textColor) el.style.setProperty('--tpl-text', style.textColor);
+      if (style.tickerBg) el.style.setProperty('--tpl-ticker-bg', style.tickerBg);
+      if (style.tickerText) el.style.setProperty('--tpl-ticker-text', style.tickerText);
+      if (style.widgetBg) el.style.setProperty('--tpl-widget-bg', style.widgetBg);
+      if (style.accentColor) el.style.setProperty('--tpl-accent', style.accentColor);
+      if (style.fontFamily && FONT_FAMILIES[style.fontFamily]) el.style.setProperty('--tpl-font', FONT_FAMILIES[style.fontFamily]);
+      if (style.cornerRadius) {
+        var RADIUS_MAP = { none: '0px', subtle: '4px', rounded: '8px', pill: '9999px' };
+        el.style.setProperty('--tpl-radius', RADIUS_MAP[style.cornerRadius] || style.cornerRadius);
+      }
+    })(div, currentTemplateStyle);
+    var mediaEl = null;
 
     switch (item.content.type) {
       case 'webpage':
@@ -227,13 +414,13 @@ if ('serviceWorker' in navigator) {
         var iframe = document.createElement('iframe');
         iframe.src = item.content.url;
         iframe.allow = 'autoplay';
-        div.appendChild(iframe);
+        mediaEl = iframe;
         break;
       case 'image':
         var img = document.createElement('img');
         img.src = item.content.url || item.content.filePath;
         img.alt = item.content.title;
-        div.appendChild(img);
+        mediaEl = img;
         break;
       case 'video':
         var video = document.createElement('video');
@@ -244,7 +431,7 @@ if ('serviceWorker' in navigator) {
         video.playsInline = true;
         video.controls = false;
         videoElement = video;
-        div.appendChild(video);
+        mediaEl = video;
         try { var p = video.play(); if (p && typeof p.catch === 'function') p.catch(function () {}); } catch (e) {}
         video.addEventListener('ended', function () {
           videoElement = null;
@@ -283,6 +470,13 @@ if ('serviceWorker' in navigator) {
       default:
         div.innerHTML = '<h2>' + escapeHtml(item.content.title) + '</h2>';
     }
+    if (mediaEl) {
+      if (currentTemplate === 'full_bleed') {
+        div.appendChild(mediaEl);
+      } else {
+        appendTemplateLayout(div, item, mediaEl);
+      }
+    }
     container.appendChild(div);
     if (item.content.type !== 'video') {
       scheduleNext();
@@ -310,21 +504,91 @@ if ('serviceWorker' in navigator) {
   }
 
   function showIdle() {
-    var purposeName = '';
-    var bodyClass = document.body.className;
-    if (bodyClass && bodyClass.indexOf('purpose-') === 0) {
-      var p = bodyClass.replace('purpose-', '');
-      purposeName = PURPOSE_LABELS[p] || p;
-    }
+    document.body.classList.add('player-idle');
+    document.body.classList.remove('player-playing');
+    var purposeName = PURPOSE_LABELS[currentPurpose] || currentPurpose;
     container.innerHTML = '<div class="slide active" style="flex-direction:column;gap:16px;">' +
-      '<h2 style="font-size:2em;">Signage Player</h2>' +
-      (purposeName ? '<p style="opacity:0.4;font-size:0.9em;">' + escapeHtml(purposeName) + '</p>' : '') +
-      '<p style="opacity:0.5;">Esperando contenido...</p></div>';
+      '<div class="idle-card">' +
+      '<span class="idle-purpose"><span class="idle-purpose-dot"></span>' + escapeHtml(purposeName) + '</span>' +
+      '<h2>Signage Player</h2>' +
+      '<p class="idle-muted">Esperando contenido...</p>' +
+      (screenNameEl && screenNameEl.textContent ? '<p class="idle-muted">' + escapeHtml(screenNameEl.textContent) + '</p>' : '') +
+      '</div></div>';
   }
 
   function escapeHtml(str) {
     if (!str) return '';
     return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function tplVars() {
+    var purposeName = PURPOSE_LABELS[currentPurpose] || currentPurpose;
+    var item = items[currentIndex];
+    return {
+      badge: currentTemplateText.badge || purposeName,
+      headline: currentTemplateText.headline || (item && item.content ? item.content.title : screenNameEl.textContent) || 'Content',
+      subtitle: currentTemplateText.subtitle || screenNameEl.textContent || '',
+      qrText: currentTemplateText.qrText || 'QR',
+      weatherLocation: currentTemplateText.weatherLocation || 'United Kingdom',
+      temperature: currentTemplateText.temperature || '16°C',
+      ticker: currentTemplateText.ticker || 'News ticker message goes here and can be edited for this screen',
+      logoText: currentTemplateText.logoText || '▲',
+    };
+  }
+
+  function appendTemplateLayout(div, item, mediaEl) {
+    if (!item || !item.content) return;
+    var v = tplVars();
+
+    if (currentTemplate === 'media_left' || currentTemplate === 'media_right') {
+      var grid = document.createElement('div');
+      grid.className = 'tpl-grid';
+      var m = document.createElement('div');
+      m.className = 'tpl-media';
+      m.appendChild(mediaEl);
+      var s = document.createElement('div');
+      s.className = 'tpl-sidebar';
+      s.innerHTML = '<div class="tpl-badge">' + escapeHtml(v.badge) + '</div><div class="tpl-headline">' + escapeHtml(v.headline) + '</div><div class="tpl-subrow"><div class="tpl-qr">' + escapeHtml(v.qrText) + '</div><div class="tpl-subtitle">' + escapeHtml(v.subtitle) + '</div></div>';
+      var w = document.createElement('div');
+      w.className = 'tpl-weather-right';
+      w.innerHTML = '<div class="tpl-wloc">' + escapeHtml(v.weatherLocation) + '</div><div class="tpl-wpill">Today</div><div class="tpl-wicon">☁</div><div class="tpl-wtemp">' + escapeHtml(v.temperature) + '</div><div class="tpl-wfeel">Feels like 16°</div>';
+      if (currentTemplate === 'media_right') { grid.appendChild(s); grid.appendChild(m); } else { grid.appendChild(m); grid.appendChild(s); }
+      grid.appendChild(w);
+      div.appendChild(grid);
+    } else if (currentTemplate === 'center_stage') {
+      var c = document.createElement('div');
+      c.className = 'tpl-center';
+      var cm = document.createElement('div');
+      cm.className = 'tpl-center-media';
+      cm.appendChild(mediaEl);
+      var cb = document.createElement('div');
+      cb.className = 'tpl-center-bar';
+      cb.innerHTML = '<span class="tpl-center-badge">' + escapeHtml(v.badge) + '</span><span class="tpl-center-headline">' + escapeHtml(v.headline) + '</span><span class="tpl-center-sub">' + escapeHtml(v.subtitle) + '</span><span class="tpl-center-qr">' + escapeHtml(v.qrText) + '</span><span class="tpl-center-widget">☁ ' + escapeHtml(v.temperature) + ' ' + escapeHtml(v.weatherLocation) + '</span>';
+      c.appendChild(cm);
+      c.appendChild(cb);
+      div.appendChild(c);
+    } else if (currentTemplate === 'hero_overlay') {
+      var h = document.createElement('div');
+      h.className = 'tpl-hero';
+      var hb = document.createElement('div');
+      hb.className = 'tpl-hero-bg';
+      hb.appendChild(mediaEl);
+      var ho = document.createElement('div');
+      ho.className = 'tpl-hero-overlay';
+      ho.innerHTML = '<div class="tpl-hero-badge">' + escapeHtml(v.badge) + '</div><div class="tpl-hero-headline">' + escapeHtml(v.headline) + '</div><div class="tpl-hero-subrow"><div class="tpl-hero-qr">' + escapeHtml(v.qrText) + '</div><div class="tpl-hero-sub">' + escapeHtml(v.subtitle) + '</div></div>';
+      var hw = document.createElement('div');
+      hw.className = 'tpl-hero-widget';
+      hw.innerHTML = '<div class="tpl-hero-wloc">' + escapeHtml(v.weatherLocation) + '</div><div class="tpl-hero-wicon">☁</div><div class="tpl-hero-wtemp">' + escapeHtml(v.temperature) + '</div>';
+      h.appendChild(hb);
+      h.appendChild(ho);
+      h.appendChild(hw);
+      div.appendChild(h);
+    }
+
+    var tk = document.createElement('div');
+    tk.className = 'tpl-ticker';
+    tk.innerHTML = '<div class="tpl-ticker-logo">' + escapeHtml(v.logoText) + '</div><div class="tpl-ticker-text">' + escapeHtml(v.ticker) + '</div>';
+    div.appendChild(tk);
   }
 
   // --- WebSocket ---
@@ -337,8 +601,17 @@ if ('serviceWorker' in navigator) {
     ws.onmessage = function (event) {
       try {
         var msg = JSON.parse(event.data);
-        if (msg.type === 'playlist_update' || msg.type === 'content_update') {
+        if (msg.type === 'playlist_update' || msg.type === 'content_update' || msg.type === 'purpose_update') {
+          if (msg.type === 'purpose_update' && msg.screenId && msg.screenId !== screenId) return;
+          if (msg.purpose) applyPurpose(msg.purpose);
+          if (msg.template) applyTemplate(msg.template);
+          if (msg.templateText) applyTemplateText(msg.templateText);
+          if (msg.templateStyle) applyTemplateStyle(msg.templateStyle);
           fetchPlaylist();
+        }
+        if (msg.type === 'screen_deleted') {
+          localStorage.removeItem('signage_screen_id');
+          location.reload();
         }
         if (msg.type === 'hard_reset') {
           if ('serviceWorker' in navigator) {
@@ -349,8 +622,6 @@ if ('serviceWorker' in navigator) {
               for (var i = 0; i < names.length; i++) { caches.delete(names[i]); }
             });
           }
-          localStorage.removeItem('signage_screen_id');
-          localStorage.removeItem('signage_player_version');
           location.reload();
         }
       } catch (e) {}
@@ -367,6 +638,11 @@ if ('serviceWorker' in navigator) {
   // --- Heartbeat ---
   function startHeartbeat() {
     if (heartbeatTimer) clearInterval(heartbeatTimer);
+    fetch(API_BASE + '/screens/heartbeat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ screenId: screenId })
+    }).catch(function () {});
     heartbeatTimer = setInterval(function () {
       fetch(API_BASE + '/screens/heartbeat', {
         method: 'POST',
@@ -396,26 +672,44 @@ if ('serviceWorker' in navigator) {
 
   // --- Fullscreen ---
   var fsBtn = document.getElementById('fs-btn');
+  function syncFullscreenState(force) {
+    var isFullscreen = typeof force === 'boolean' ? force : !!document.fullscreenElement;
+    fsBtn.textContent = isFullscreen ? '⛶ Salir' : '⛶ Pantalla completa';
+    document.body.classList.toggle('is-fullscreen', isFullscreen);
+  }
   fsBtn.addEventListener('click', function () {
     if (document.fullscreenElement) {
       document.exitFullscreen().catch(function () {});
-      fsBtn.textContent = '⛶ Pantalla completa';
+      syncFullscreenState(false);
     } else {
       document.documentElement.requestFullscreen().catch(function () {});
-      fsBtn.textContent = '⛶ Salir';
+      syncFullscreenState(true);
     }
   });
   document.addEventListener('fullscreenchange', function () {
-    fsBtn.textContent = document.fullscreenElement ? '⛶ Salir' : '⛶ Pantalla completa';
+    syncFullscreenState();
   });
+  syncFullscreenState();
 
   // --- Init ---
-  var storedId = localStorage.getItem('signage_screen_id');
-  if (storedId) {
+  applyPurpose('other');
+  var pairFromUrl = '';
+  try {
+    pairFromUrl = new URLSearchParams(window.location.search).get('pair') || '';
+  } catch (e) {}
+  if (pairFromUrl) {
+    localStorage.removeItem('signage_screen_id');
+    pairInput.value = pairFromUrl.toUpperCase().substring(0, 6);
+    if (pairInput.value.length === 6) doPair();
+  } else {
+    var storedId = localStorage.getItem('signage_screen_id');
+    if (storedId) {
     screenId = storedId;
     pairScreen.classList.add('hidden');
+    document.body.classList.remove('player-pairing');
     screenNameEl.textContent = 'Pantalla';
     startPlayer();
+    }
   }
 })();
 </script>

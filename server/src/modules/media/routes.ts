@@ -92,14 +92,48 @@ export async function publicMediaRoutes(fastify: FastifyInstance) {
   fastify.get("/api/public/file/:orgId/:filename", async (request: FastifyRequest, reply: FastifyReply) => {
     const { orgId, filename } = request.params as { orgId: string; filename: string };
     const minio = getMinio();
+    const objectName = `${orgId}/${filename}`;
+
     try {
-      const stream = await minio.getObject(config.minio.bucket, `${orgId}/${filename}`);
-      const stat = await minio.statObject(config.minio.bucket, `${orgId}/${filename}`);
-      reply.header("Content-Type", stat.metaData?.["content-type"] || "application/octet-stream");
+      const stat = await minio.statObject(config.minio.bucket, objectName);
+      const totalSize = stat.size;
+      const mimeType = stat.metaData?.["content-type"] || "application/octet-stream";
+      const rangeHeader = request.headers.range;
+
+      reply.header("Accept-Ranges", "bytes");
       reply.header("Cache-Control", "public, max-age=31536000");
+
+      if (rangeHeader) {
+        const match = rangeHeader.match(/bytes=(\d+)-(\d*)/);
+        if (!match) {
+          return reply.status(416).send({ error: "Range Not Satisfiable" });
+        }
+        const start = parseInt(match[1], 10);
+        const end = match[2] ? parseInt(match[2], 10) : totalSize - 1;
+        const chunkSize = end - start + 1;
+
+        if (start >= totalSize || end >= totalSize) {
+          reply.header("Content-Range", `bytes */${totalSize}`);
+          return reply.status(416).send({ error: "Range Not Satisfiable" });
+        }
+
+        const stream = await minio.getPartialObject(config.minio.bucket, objectName, start, chunkSize);
+        reply.status(206);
+        reply.header("Content-Range", `bytes ${start}-${end}/${totalSize}`);
+        reply.header("Content-Length", chunkSize);
+        reply.header("Content-Type", mimeType);
+        return reply.send(stream);
+      }
+
+      const stream = await minio.getObject(config.minio.bucket, objectName);
+      reply.header("Content-Type", mimeType);
+      reply.header("Content-Length", totalSize);
       return reply.send(stream);
-    } catch {
-      return reply.status(404).send({ error: "File not found" });
+    } catch (err: any) {
+      if (err.code === "NotFound") {
+        return reply.status(404).send({ error: "File not found" });
+      }
+      throw err;
     }
   });
 }

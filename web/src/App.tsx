@@ -4,6 +4,7 @@ import Layout from "@/components/Layout";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import Content from "@/pages/Content";
+import ContentHub from "@/pages/ContentHub";
 import Playlists from "@/pages/Playlists";
 import Schedules from "@/pages/Schedules";
 import Screens from "@/pages/Screens";
@@ -22,9 +23,10 @@ export default function App() {
     <AuthProvider>
       <Routes>
         <Route path="/login" element={<Login />} />
-        <Route element={<Layout />}>
+          <Route element={<Layout />}>
           <Route index element={<Dashboard />} />
-          <Route path="/content" element={<Content />} />
+          <Route path="/content" element={<ContentHub />} />
+          <Route path="/content/library" element={<Content />} />
           <Route path="/playlists" element={<Playlists />} />
           <Route path="/schedules" element={<Schedules />} />
           <Route path="/screens" element={<Screens />} />

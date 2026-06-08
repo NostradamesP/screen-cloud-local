@@ -57,6 +57,7 @@ export async function scheduleRoutes(fastify: FastifyInstance) {
       priority: body.priority,
     }).returning();
     cacheDel("player:*");
+    fastify.wsNotifier.notifyAllScreens({ type: "playlist_update" });
     return reply.status(201).send(schedule);
   });
 
@@ -72,6 +73,7 @@ export async function scheduleRoutes(fastify: FastifyInstance) {
       .returning();
     if (!updated) return reply.status(404).send({ error: "Schedule not found" });
     cacheDel("player:*");
+    fastify.wsNotifier.notifyAllScreens({ type: "playlist_update" });
     return updated;
   });
 
@@ -85,6 +87,7 @@ export async function scheduleRoutes(fastify: FastifyInstance) {
       .returning();
     if (!deleted) return reply.status(404).send({ error: "Schedule not found" });
     cacheDel("player:*");
+    fastify.wsNotifier.notifyAllScreens({ type: "playlist_update" });
     return reply.status(204).send();
   });
 }

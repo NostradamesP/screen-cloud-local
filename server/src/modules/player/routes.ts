@@ -44,7 +44,72 @@ async function resolveActiveSchedule(screenId: string) {
   return matchedSchedule;
 }
 
-const PLAYER_VERSION = "1.1.0";
+const PLAYER_VERSION = "1.5.2";
+
+function templateForPurpose(purpose?: string | null) {
+  switch (purpose) {
+    case "manufacturing_logistics":
+    case "production":
+      return "media_right";
+    case "office_communications":
+    case "office":
+    case "meeting_room":
+    case "lobby":
+      return "center_stage";
+    case "cafeteria_restaurant":
+    case "menu_board":
+      return "media_left";
+    case "retail_promotions":
+      return "hero_overlay";
+    case "healthcare":
+    case "public_information":
+    case "public_info":
+      return "media_right";
+    case "events":
+      return "hero_overlay";
+    default:
+      return "full_bleed";
+  }
+}
+
+function playerScreenPayload(screen: any) {
+  let settings = (screen.settings ?? {}) as Record<string, unknown> | string;
+  if (typeof settings === "string") {
+    try {
+      settings = JSON.parse(settings) as Record<string, unknown>;
+    } catch {
+      settings = {};
+    }
+  }
+  return {
+    id: screen.id,
+    name: screen.name,
+    purpose: screen.purpose,
+    template: typeof settings.template === "string" ? settings.template : templateForPurpose(screen.purpose),
+    templateText: {
+      badge: typeof settings.templateBadge === "string" ? settings.templateBadge : "",
+      headline: typeof settings.templateHeadline === "string" ? settings.templateHeadline : "",
+      subtitle: typeof settings.templateSubtitle === "string" ? settings.templateSubtitle : "",
+      qrText: typeof settings.templateQrText === "string" ? settings.templateQrText : "",
+      weatherLocation: typeof settings.templateWeatherLocation === "string" ? settings.templateWeatherLocation : "",
+      temperature: typeof settings.templateTemperature === "string" ? settings.templateTemperature : "",
+      ticker: typeof settings.templateTicker === "string" ? settings.templateTicker : "",
+      logoText: typeof settings.templateLogoText === "string" ? settings.templateLogoText : "",
+    },
+    templateStyle: {
+      primaryColor: typeof settings.templatePrimaryColor === "string" ? settings.templatePrimaryColor : null,
+      bgColor: typeof settings.templateBgColor === "string" ? settings.templateBgColor : null,
+      textColor: typeof settings.templateTextColor === "string" ? settings.templateTextColor : null,
+      tickerBg: typeof settings.templateTickerBg === "string" ? settings.templateTickerBg : null,
+      tickerText: typeof settings.templateTickerText === "string" ? settings.templateTickerText : null,
+      widgetBg: typeof settings.templateWidgetBg === "string" ? settings.templateWidgetBg : null,
+      accentColor: typeof settings.templateAccentColor === "string" ? settings.templateAccentColor : null,
+      fontFamily: typeof settings.templateFontFamily === "string" ? settings.templateFontFamily : null,
+      fontSizeScale: typeof settings.templateFontSizeScale === "string" ? settings.templateFontSizeScale : null,
+      cornerRadius: typeof settings.templateCornerRadius === "string" ? settings.templateCornerRadius : null,
+    },
+  };
+}
 
 export async function playerRoutes(fastify: FastifyInstance) {
   fastify.get("/api/player/version", async () => ({ version: PLAYER_VERSION }));
@@ -64,7 +129,7 @@ export async function playerRoutes(fastify: FastifyInstance) {
       if (screen.idleContentId) {
         const [idleContent] = await db.select().from(contentItems).where(eq(contentItems.id, screen.idleContentId));
         return {
-          screen: { id: screen.id, name: screen.name, purpose: screen.purpose },
+          screen: playerScreenPayload(screen),
           schedule: null,
           playlist: null,
           items: idleContent ? [{
@@ -84,7 +149,7 @@ export async function playerRoutes(fastify: FastifyInstance) {
         };
       }
       return {
-        screen: { id: screen.id, name: screen.name, purpose: screen.purpose },
+        screen: playerScreenPayload(screen),
         schedule: null,
         playlist: null,
         items: [],
@@ -120,7 +185,7 @@ export async function playerRoutes(fastify: FastifyInstance) {
     }));
 
     const response = {
-      screen: { id: screen.id, name: screen.name, purpose: screen.purpose },
+      screen: playerScreenPayload(screen),
       schedule: matchedSchedule,
       playlist,
       items: formattedItems,

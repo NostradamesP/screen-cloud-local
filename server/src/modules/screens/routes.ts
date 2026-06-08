@@ -15,6 +15,7 @@ const createScreenSchema = z.object({
   orientation: z.enum(["landscape", "portrait"]).default("landscape"),
   purpose: z.enum(screenPurposes as [string, ...string[]]).default("other"),
   idleContentId: z.string().uuid().optional(),
+  settings: z.record(z.unknown()).optional(),
 });
 
 const heartbeatSchema = z.object({
@@ -28,6 +29,19 @@ const pairSchema = z.object({
 
 function generatePairCode(): string {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
+}
+
+function normalizeSettings(settings: unknown): Record<string, unknown> {
+  if (!settings) return {};
+  if (typeof settings === "string") {
+    try {
+      const parsed = JSON.parse(settings);
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed as Record<string, unknown> : {};
+    } catch {
+      return {};
+    }
+  }
+  return typeof settings === "object" && !Array.isArray(settings) ? settings as Record<string, unknown> : {};
 }
 
 export async function screenRoutes(fastify: FastifyInstance) {
@@ -64,6 +78,7 @@ export async function screenRoutes(fastify: FastifyInstance) {
       orientation: body.orientation,
       purpose: body.purpose,
       idleContentId: body.idleContentId ?? null,
+      settings: normalizeSettings(body.settings),
       pairCode,
       status: "offline",
     }).returning();
@@ -76,13 +91,46 @@ export async function screenRoutes(fastify: FastifyInstance) {
     const { id } = request.params as { id: string };
     const { orgId } = request.user;
     const body = createScreenSchema.partial().parse(request.body);
+    const updateData = {
+      ...body,
+      ...(body.settings ? { settings: normalizeSettings(body.settings) } : {}),
+      updatedAt: new Date(),
+    };
     const [updated] = await db.update(screens)
-      .set({ ...body, updatedAt: new Date() })
+      .set(updateData)
       .where(and(eq(screens.id, id), eq(screens.organizationId, orgId)))
       .returning();
     if (!updated) return reply.status(404).send({ error: "Screen not found" });
-    cacheDel("player:*");
-    fastify.wsNotifier.notifyAllScreens({ type: "playlist_update" });
+    await cacheDel("player:*");
+    const s = normalizeSettings(updated.settings);
+    fastify.wsNotifier.notifyAllScreens({
+      type: "purpose_update",
+      screenId: id,
+      purpose: updated.purpose,
+      template: s.template,
+      templateText: {
+        badge: s.templateBadge,
+        headline: s.templateHeadline,
+        subtitle: s.templateSubtitle,
+        qrText: s.templateQrText,
+        weatherLocation: s.templateWeatherLocation,
+        temperature: s.templateTemperature,
+        ticker: s.templateTicker,
+        logoText: s.templateLogoText,
+      },
+      templateStyle: {
+        primaryColor: s.templatePrimaryColor || null,
+        bgColor: s.templateBgColor || null,
+        textColor: s.templateTextColor || null,
+        tickerBg: s.templateTickerBg || null,
+        tickerText: s.templateTickerText || null,
+        widgetBg: s.templateWidgetBg || null,
+        accentColor: s.templateAccentColor || null,
+        fontFamily: s.templateFontFamily || null,
+        fontSizeScale: s.templateFontSizeScale || null,
+        cornerRadius: s.templateCornerRadius || null,
+      },
+    });
     return updated;
   });
 
@@ -91,10 +139,12 @@ export async function screenRoutes(fastify: FastifyInstance) {
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
     const { orgId } = request.user;
+    fastify.wsNotifier.notifyScreen(id, { type: "screen_deleted" });
     const [deleted] = await db.delete(screens)
       .where(and(eq(screens.id, id), eq(screens.organizationId, orgId)))
       .returning();
     if (!deleted) return reply.status(404).send({ error: "Screen not found" });
+    await cacheDel("player:*");
     return reply.status(204).send();
   });
 

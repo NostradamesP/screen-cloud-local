@@ -3,14 +3,21 @@ import { organizations } from "./organizations";
 import { contentItems } from "./content";
 
 export const SCREEN_PURPOSES = [
-  "office",
+  "manufacturing_logistics",
+  "office_communications",
+  "cafeteria_restaurant",
+  "retail_promotions",
+  "healthcare",
   "events",
+  "public_information",
+  "other",
+  // Legacy purposes kept so existing screens can still be edited safely.
+  "office",
   "public_info",
   "menu_board",
   "lobby",
   "meeting_room",
   "production",
-  "other",
 ] as const;
 
 export type ScreenPurpose = (typeof SCREEN_PURPOSES)[number];
