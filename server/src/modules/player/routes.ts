@@ -44,7 +44,7 @@ async function resolveActiveSchedule(screenId: string) {
   return matchedSchedule;
 }
 
-const PLAYER_VERSION = "1.0.0";
+const PLAYER_VERSION = "1.1.0";
 
 export async function playerRoutes(fastify: FastifyInstance) {
   fastify.get("/api/player/version", async () => ({ version: PLAYER_VERSION }));
@@ -64,7 +64,7 @@ export async function playerRoutes(fastify: FastifyInstance) {
       if (screen.idleContentId) {
         const [idleContent] = await db.select().from(contentItems).where(eq(contentItems.id, screen.idleContentId));
         return {
-          screen: { id: screen.id, name: screen.name },
+          screen: { id: screen.id, name: screen.name, purpose: screen.purpose },
           schedule: null,
           playlist: null,
           items: idleContent ? [{
@@ -84,7 +84,7 @@ export async function playerRoutes(fastify: FastifyInstance) {
         };
       }
       return {
-        screen: { id: screen.id, name: screen.name },
+        screen: { id: screen.id, name: screen.name, purpose: screen.purpose },
         schedule: null,
         playlist: null,
         items: [],
@@ -120,7 +120,7 @@ export async function playerRoutes(fastify: FastifyInstance) {
     }));
 
     const response = {
-      screen: { id: screen.id, name: screen.name },
+      screen: { id: screen.id, name: screen.name, purpose: screen.purpose },
       schedule: matchedSchedule,
       playlist,
       items: formattedItems,
@@ -141,6 +141,22 @@ export async function playerRoutes(fastify: FastifyInstance) {
     return { ok: true };
   });
 
+  fastify.post("/api/player/sync", {
+    preHandler: [fastify.authenticate],
+  }, async () => {
+    await cacheDel("player:*");
+    fastify.wsNotifier.notifyAllScreens({ type: "playlist_update" });
+    return { ok: true, message: "Sync triggered: cache flushed and all screens notified" };
+  });
+
+  fastify.post("/api/player/clear-cache", {
+    preHandler: [fastify.authenticate],
+  }, async () => {
+    await cacheDel("player:*");
+    fastify.wsNotifier.notifyAllScreens({ type: "hard_reset" });
+    return { ok: true, message: "Hard reset sent: screens will clear all caches and reload" };
+  });
+
   fastify.get("/api/scheduler/now", {
     preHandler: [fastify.authenticate],
   }, async (request: FastifyRequest) => {
@@ -152,16 +168,25 @@ export async function playerRoutes(fastify: FastifyInstance) {
       const isOnline = screen.lastHeartbeat
         ? (Date.now() - new Date(screen.lastHeartbeat).getTime()) < 60000
         : false;
+      let idleContent = null;
+      if (screen.idleContentId) {
+        const [content] = await db.select().from(contentItems).where(eq(contentItems.id, screen.idleContentId));
+        if (content) {
+          idleContent = { id: content.id, title: content.title, type: content.type };
+        }
+      }
       result.push({
         screenId: screen.id,
         screenName: screen.name,
         location: screen.location,
+        purpose: screen.purpose,
         status: isOnline ? "online" : "offline",
         activeSchedule: schedule ? {
           id: schedule.id,
           name: schedule.name,
           playlistId: schedule.playlistId,
         } : null,
+        idleContent,
       });
     }
     return result;

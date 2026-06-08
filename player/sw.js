@@ -1,4 +1,4 @@
-const CACHE_NAME = "signage-player-v1";
+const CACHE_NAME = "signage-player-v2";
 const ASSETS = ["/player/", "/player/index.html"];
 
 self.addEventListener("install", (event) => {
@@ -9,7 +9,11 @@ self.addEventListener("install", (event) => {
 });
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(clients.claim());
+  event.waitUntil(
+    caches.keys().then((names) =>
+      Promise.all(names.filter((n) => n !== CACHE_NAME).map((n) => caches.delete(n)))
+    ).then(() => clients.claim())
+  );
 });
 
 self.addEventListener("fetch", (event) => {

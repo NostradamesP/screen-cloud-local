@@ -102,8 +102,12 @@ export const api = {
     update: (id: string, data: any) => request<any>(`/screen-groups/${id}`, { method: "PUT", body: JSON.stringify(data) }),
     delete: (id: string) => request<void>(`/screen-groups/${id}`, { method: "DELETE" }),
   },
+  player: {
+    sync: () => request<{ ok: boolean; message: string }>("/player/sync", { method: "POST", body: "{}" }),
+    clearCache: () => request<{ ok: boolean; message: string }>("/player/clear-cache", { method: "POST", body: "{}" }),
+  },
   scheduler: {
-    now: () => request<{ screenId: string; screenName: string; location: string; status: string; activeSchedule: any }[]>("/scheduler/now"),
+    now: () => request<{ screenId: string; screenName: string; location: string; purpose: string; status: string; activeSchedule: any; idleContent: { id: string; title: string; type: string } | null }[]>("/scheduler/now"),
   },
   layouts: {
     list: () => request<any[]>("/layouts"),

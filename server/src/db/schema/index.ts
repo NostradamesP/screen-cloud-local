@@ -1,6 +1,6 @@
 export { organizations } from "./organizations";
 export { users, organizationMembers } from "./users";
-export { screens } from "./screens";
+export { screens, SCREEN_PURPOSES } from "./screens";
 export { contentItems } from "./content";
 export { mediaAssets } from "./media";
 export { playlists, playlistItems } from "./playlists";

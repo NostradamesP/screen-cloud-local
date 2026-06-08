@@ -32,13 +32,26 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; colo
 #status-bar .status-dot.online { background: #22c55e; }
 #status-bar .status-dot.offline { background: #ef4444; }
 #status-bar .status-dot.connecting { background: #eab308; }
+#fs-btn { background: none; border: 1px solid rgba(255,255,255,0.3); color: rgba(255,255,255,0.6); border-radius: 4px; cursor: pointer; font-size: 11px; padding: 2px 6px; line-height: 1.4; }
+#fs-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
 
 .transition-fade .slide { transition: opacity 0.8s ease; }
 .transition-slide .slide { transition: transform 0.8s ease; }
+
+#purpose-bar { position: fixed; top: 0; left: 0; right: 0; height: 4px; z-index: 60; background: #6b7280; transition: background 0.5s ease; }
+.purpose-office #purpose-bar { background: #3b82f6; }
+.purpose-events #purpose-bar { background: #8b5cf6; }
+.purpose-public_info #purpose-bar { background: #10b981; }
+.purpose-menu_board #purpose-bar { background: #f59e0b; }
+.purpose-lobby #purpose-bar { background: #ec4899; }
+.purpose-meeting_room #purpose-bar { background: #06b6d4; }
+.purpose-production #purpose-bar { background: #ef4444; }
+.purpose-other #purpose-bar { background: #6b7280; }
 </style>
 </head>
 <body>
 <div id="app">
+  <div id="purpose-bar"></div>
   <div id="player-container"></div>
   <div id="pair-screen">
     <h1>Signage Player</h1>
@@ -49,13 +62,18 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #000; colo
   </div>
   <div id="status-bar">
     <span><span class="status-dot offline" id="status-dot"></span> <span id="status-text">Desconectado</span></span>
-    <span id="screen-name"></span>
+    <span id="screen-name"></span> <span id="purpose-label" style="font-size:10px;opacity:0.5;"></span>
+    <span id="debug-info" style="font-size:10px;opacity:0.5;"></span>
+    <button id="fs-btn">⛶ Pantalla completa</button>
     <span id="time-display"></span>
   </div>
 </div>
 <script>
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/player/sw.js').catch(function () {});
+  navigator.serviceWorker.getRegistrations().then(function(regs) {
+    for (var i = 0; i < regs.length; i++) { regs[i].unregister(); }
+  });
+  navigator.serviceWorker.register('/player/sw.js?v=' + Date.now()).catch(function () {});
 }
 </script>
 <script>
@@ -82,7 +100,24 @@ if ('serviceWorker' in navigator) {
   var statusDot = document.getElementById('status-dot');
   var statusText = document.getElementById('status-text');
   var screenNameEl = document.getElementById('screen-name');
+  var purposeLabelEl = document.getElementById('purpose-label');
   var timeDisplay = document.getElementById('time-display');
+
+  var PURPOSE_LABELS = {
+    office: 'Oficina',
+    events: 'Eventos',
+    public_info: 'Info. Pública',
+    menu_board: 'Menú Digital',
+    lobby: 'Lobby',
+    meeting_room: 'Sala Reuniones',
+    production: 'Producción',
+    other: 'Otro',
+  };
+  function applyPurpose(purpose) {
+    var cls = 'purpose-' + (purpose || 'other');
+    document.body.className = cls;
+    if (purposeLabelEl) purposeLabelEl.textContent = PURPOSE_LABELS[purpose] || purpose || '';
+  }
 
   // --- Clock ---
   function updateClock() {
@@ -93,9 +128,13 @@ if ('serviceWorker' in navigator) {
   updateClock();
 
   // --- Status ---
+  var debugEl = document.getElementById('debug-info');
   function setStatus(state, text) {
     statusDot.className = 'status-dot ' + state;
     statusText.textContent = text;
+  }
+  function setDebug(msg) {
+    if (debugEl) debugEl.textContent = msg;
   }
 
   // --- Pairing ---
@@ -135,6 +174,8 @@ if ('serviceWorker' in navigator) {
     });
   }
 
+  var POLL_INTERVAL = 30000;
+
   // --- Player ---
   function startPlayer() {
     if (!screenId) return;
@@ -142,23 +183,32 @@ if ('serviceWorker' in navigator) {
     connectWebSocket();
     fetchPlaylist();
     startHeartbeat();
+    setInterval(fetchPlaylist, POLL_INTERVAL);
   }
 
   function fetchPlaylist() {
+    setDebug('Fetching...');
     fetch(API_BASE + '/player/' + screenId)
-      .then(function (res) { return res.json(); })
+      .then(function (res) {
+        setDebug('Status: ' + res.status);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.json();
+      })
       .then(function (data) {
+        var count = data.items ? data.items.length : 0;
+        setDebug('Items: ' + count + ' | ' + (data.message || ''));
+        if (data.screen && data.screen.purpose) applyPurpose(data.screen.purpose);
         if (data.items && data.items.length > 0) {
           items = data.items;
           currentIndex = 0;
           renderCurrent();
           startRotation();
-          itemCount = items.length;
         } else {
           showIdle();
         }
       })
-      .catch(function () {
+      .catch(function (err) {
+        setDebug('Error: ' + (err.message || 'unknown'));
         showIdle();
       });
   }
@@ -195,11 +245,21 @@ if ('serviceWorker' in navigator) {
         video.controls = false;
         videoElement = video;
         div.appendChild(video);
-        video.play().catch(function () {});
+        try { var p = video.play(); if (p && typeof p.catch === 'function') p.catch(function () {}); } catch (e) {}
         video.addEventListener('ended', function () {
           videoElement = null;
           currentIndex = (currentIndex + 1) % items.length;
           renderCurrent();
+        });
+        video.addEventListener('error', function () {
+          container.innerHTML = '<div class="slide active" style="flex-direction:column;gap:8px;justify-content:center;align-items:center;">' +
+            '<h2 style="font-size:1.5em;">' + escapeHtml(item.content.title) + '</h2>' +
+            '<p style="opacity:0.5;">Video no disponible</p></div>';
+          videoElement = null;
+          setTimeout(function () {
+            currentIndex = (currentIndex + 1) % items.length;
+            renderCurrent();
+          }, 5000);
         });
         break;
       case 'rss':
@@ -250,8 +310,15 @@ if ('serviceWorker' in navigator) {
   }
 
   function showIdle() {
+    var purposeName = '';
+    var bodyClass = document.body.className;
+    if (bodyClass && bodyClass.indexOf('purpose-') === 0) {
+      var p = bodyClass.replace('purpose-', '');
+      purposeName = PURPOSE_LABELS[p] || p;
+    }
     container.innerHTML = '<div class="slide active" style="flex-direction:column;gap:16px;">' +
       '<h2 style="font-size:2em;">Signage Player</h2>' +
+      (purposeName ? '<p style="opacity:0.4;font-size:0.9em;">' + escapeHtml(purposeName) + '</p>' : '') +
       '<p style="opacity:0.5;">Esperando contenido...</p></div>';
   }
 
@@ -272,6 +339,19 @@ if ('serviceWorker' in navigator) {
         var msg = JSON.parse(event.data);
         if (msg.type === 'playlist_update' || msg.type === 'content_update') {
           fetchPlaylist();
+        }
+        if (msg.type === 'hard_reset') {
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function (regs) {
+              for (var i = 0; i < regs.length; i++) { regs[i].unregister(); }
+            });
+            caches.keys().then(function (names) {
+              for (var i = 0; i < names.length; i++) { caches.delete(names[i]); }
+            });
+          }
+          localStorage.removeItem('signage_screen_id');
+          localStorage.removeItem('signage_player_version');
+          location.reload();
         }
       } catch (e) {}
     };
@@ -313,6 +393,21 @@ if ('serviceWorker' in navigator) {
   }
   setInterval(checkPlayerUpdate, UPDATE_CHECK_INTERVAL);
   checkPlayerUpdate();
+
+  // --- Fullscreen ---
+  var fsBtn = document.getElementById('fs-btn');
+  fsBtn.addEventListener('click', function () {
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(function () {});
+      fsBtn.textContent = '⛶ Pantalla completa';
+    } else {
+      document.documentElement.requestFullscreen().catch(function () {});
+      fsBtn.textContent = '⛶ Salir';
+    }
+  });
+  document.addEventListener('fullscreenchange', function () {
+    fsBtn.textContent = document.fullscreenElement ? '⛶ Salir' : '⛶ Pantalla completa';
+  });
 
   // --- Init ---
   var storedId = localStorage.getItem('signage_screen_id');

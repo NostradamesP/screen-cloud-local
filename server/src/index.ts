@@ -13,6 +13,7 @@ import { db } from "./db";
 import authPlugin from "./plugins/auth";
 import authorizationPlugin from "./plugins/authorization";
 import { ensureBucket } from "./minio";
+import { cacheDel } from "./lib/cache";
 import { authRoutes } from "./modules/auth/routes";
 import { contentRoutes } from "./modules/content/routes";
 import { mediaRoutes, publicMediaRoutes } from "./modules/media/routes";
@@ -75,6 +76,7 @@ async function main() {
   });
 
   fastify.get("/player", async (request, reply) => {
+    reply.header("Cache-Control", "no-cache, must-revalidate");
     return reply.sendFile("index.html", playerPath);
   });
 
@@ -95,6 +97,7 @@ async function main() {
     });
   } catch {}
 
+  try { await cacheDel("player:*"); } catch {}
   try {
     await ensureBucket();
     console.log("MinIO bucket ready");

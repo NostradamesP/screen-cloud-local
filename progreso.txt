@@ -28,9 +28,27 @@
 - Docker Compose health checks
 - Migraciones `0002` — `0004`
 
+## Etapa 3 — Screen Purpose & Cache Management (Completada)
+- Sistema de propósitos: columna `purpose` en screens (office, events, public_info, menu_board, lobby, meeting_room, production, other)
+- Selector visual de propósito con íconos en formulario de crear/editar pantalla
+- Propósito visible en cards de Screens, Dashboard, y Player
+- Barra de color de 4px superior en player según propósito
+- `POST /api/player/clear-cache`: endpoint + WS `hard_reset` para limpiar caché del navegador TV
+- Botón "Limpiar Caché" en pantalla de Screens (rojo, al lado de Sincronizar)
+- `hard_reset` via WebSocket: desregistra Service Worker, borra caches, limpia localStorage, recarga player
+- Service Worker cache bump v1→v2 con limpieza automática de caches viejas
+- Version bump player 1.0.0→1.1.0 para auto-actualización en TVs existentes
+- Purga de Redis cache de player al iniciar servidor (evita datos stale sin `purpose`)
+- Range Request support (206 Partial Content) en `publicMediaRoutes` para streaming de video en Smart TVs
+- Fix: `itemCount = items.length` sin declaración `var` en strict mode (bloqueaba reproducción)
+- Fix: `video.play().catch()` para Smart TVs que no soportan Promises
+- Video error handler: muestra título + "Video no disponible" y salta al siguiente tras 5s
+- Debug info en status bar del player (cantidad items, estado HTTP, errores)
+- Fullscreen button en TV player con evento `fullscreenchange`
+- Animaciones CSS custom (fadeIn, slideDown, scaleIn) en index.css
+- Rediseño completo Screens.tsx: cards con área de contenido clickeable, modal picker inline, sin alert()/confirm()
+
 ## Próximos pasos
-- Aplicar migraciones contra DB local
-- Test flujo completo: login → contenido → playlist → schedule → pairing → player
-- Test offline cache (desconectar red)
-- Test roles (viewer restrictions)
-- Build web para producción (`cd web && npm run build`)
+- Categorías de pantalla tipo ScreenCloud (templates por industria)
+- Filtro por categoría en Pantallas
+- Análisis de ScreenCloud para features: industrias, canales, templates

@@ -1,15 +1,19 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { z } from "zod";
 import { db } from "../../db";
-import { screens } from "../../db/schema";
+import { screens, SCREEN_PURPOSES } from "../../db/schema";
 import { eq, and } from "drizzle-orm";
 import { v4 as uuid } from "uuid";
+import { cacheDel } from "../../lib/cache";
+
+const screenPurposes = SCREEN_PURPOSES as readonly string[];
 
 const createScreenSchema = z.object({
   name: z.string().min(1).max(255),
   location: z.string().max(255).optional(),
   resolution: z.string().default("1920x1080"),
   orientation: z.enum(["landscape", "portrait"]).default("landscape"),
+  purpose: z.enum(screenPurposes as [string, ...string[]]).default("other"),
   idleContentId: z.string().uuid().optional(),
 });
 
@@ -47,7 +51,7 @@ export async function screenRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post("/api/screens", {
-    preHandler: [fastify.requireRole("admin", "editor")],
+    preHandler: [fastify.authenticate, fastify.requireRole("admin", "editor")],
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     const body = createScreenSchema.parse(request.body);
     const { orgId } = request.user;
@@ -58,6 +62,7 @@ export async function screenRoutes(fastify: FastifyInstance) {
       location: body.location ?? null,
       resolution: body.resolution,
       orientation: body.orientation,
+      purpose: body.purpose,
       idleContentId: body.idleContentId ?? null,
       pairCode,
       status: "offline",
@@ -66,7 +71,7 @@ export async function screenRoutes(fastify: FastifyInstance) {
   });
 
   fastify.put("/api/screens/:id", {
-    preHandler: [fastify.requireRole("admin", "editor")],
+    preHandler: [fastify.authenticate, fastify.requireRole("admin", "editor")],
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
     const { orgId } = request.user;
@@ -76,11 +81,13 @@ export async function screenRoutes(fastify: FastifyInstance) {
       .where(and(eq(screens.id, id), eq(screens.organizationId, orgId)))
       .returning();
     if (!updated) return reply.status(404).send({ error: "Screen not found" });
+    cacheDel("player:*");
+    fastify.wsNotifier.notifyAllScreens({ type: "playlist_update" });
     return updated;
   });
 
   fastify.delete("/api/screens/:id", {
-    preHandler: [fastify.requireRole("admin")],
+    preHandler: [fastify.authenticate, fastify.requireRole("admin", "editor")],
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
     const { orgId } = request.user;
