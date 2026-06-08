@@ -2,12 +2,12 @@ FROM node:20-alpine AS base
 
 FROM base AS deps
 WORKDIR /app
-COPY package.json ./
+COPY package.json package-lock.json ./
 RUN npm ci --only=production
 
 FROM base AS build
 WORKDIR /app
-COPY package.json tsconfig.json ./
+COPY package.json package-lock.json tsconfig.json ./
 COPY src ./src
 RUN npm ci && npm run build
 
