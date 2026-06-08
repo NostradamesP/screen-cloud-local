@@ -1,0 +1,36 @@
+# Screen Cloud Local — Progreso
+
+## Etapa 1 — Features Core (Completada)
+- Fallback "Todas las pantallas": schedules con `screenId=null`
+- Prioridad en schedules: campo `priority` integer
+- "What's playing now": endpoint `GET /api/scheduler/now` + Dashboard
+- Screen Groups: tabla `screen_groups` + `screen_group_screens`, CRUD
+- Contenido idle personalizable: campo `idleContentId` en screens
+- Migración `0001_crazy_wasp.sql`
+
+## Etapa 2 — Features Avanzados (Completada)
+- Roles/Permisos: plugin `requireRole("admin","editor","viewer")`
+- Content Expiration: campo `expiresAt`, date picker, badge
+- Drag & Drop: `PUT /api/playlists/:id/items/reorder` + frontend
+- Layout Designer: tablas `layouts` + `layout_zones`, editor visual
+- Widgets: tablas `widget_definitions` + `widgets`, CRUD
+- Proof of Play: tabla `proof_of_play`, endpoint, stats
+- Tags: tablas `tags` + `content_tags`, CRUD + colores
+- Content Approval: campo `status` (draft/review/published)
+- User Management: miembros, roles, eliminar
+- Calendar view: schedules en vista mensual
+- Remote Player Config: brillo, volumen, reboot, timezone
+- API Docs: Swagger/OpenAPI en `GET /docs`
+- Rate limiting + Health check mejorado
+- Backup org: export completo
+- Email notifications: helper SMTP
+- Player auto-update: version polling
+- Docker Compose health checks
+- Migraciones `0002` — `0004`
+
+## Próximos pasos
+- Aplicar migraciones contra DB local
+- Test flujo completo: login → contenido → playlist → schedule → pairing → player
+- Test offline cache (desconectar red)
+- Test roles (viewer restrictions)
+- Build web para producción (`cd web && npm run build`)

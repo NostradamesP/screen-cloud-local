@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Signage Player</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: #000; color: #fff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+#app { width: 100%; height: 100%; position: relative; }
+.slide { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; }
+.slide.active { display: flex; align-items: center; justify-content: center; }
+.slide iframe { width: 100%; height: 100%; border: 0; }
+.slide img { width: 100%; height: 100%; object-fit: contain; }
+.slide video { width: 100%; height: 100%; object-fit: contain; }
+.slide .html-content { width: 100%; height: 100%; padding: 40px; overflow: auto; }
+.slide .rss-content { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; flex-direction: column; padding: 40px; text-align: center; }
+
+#pair-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(135deg, #0c4a6e, #0284c7); z-index: 100; }
+#pair-screen.hidden { display: none; }
+#pair-screen h1 { font-size: 2em; margin-bottom: 10px; }
+#pair-screen p { font-size: 1.1em; opacity: 0.8; margin-bottom: 30px; }
+#pair-code-input { font-size: 2em; padding: 15px 25px; border: 3px solid rgba(255,255,255,0.5); border-radius: 12px; background: rgba(255,255,255,0.15); color: #fff; text-align: center; width: 280px; letter-spacing: 8px; text-transform: uppercase; outline: none; }
+#pair-code-input::placeholder { color: rgba(255,255,255,0.4); letter-spacing: 2px; text-transform: none; }
+#pair-code-input:focus { border-color: #fff; }
+#pair-error { color: #fca5a5; margin-top: 12px; min-height: 20px; font-size: 0.9em; }
+#pair-btn { margin-top: 20px; padding: 12px 40px; border: none; border-radius: 8px; background: #fff; color: #0284c7; font-size: 1.1em; font-weight: 600; cursor: pointer; }
+#pair-btn:hover { background: #f0f9ff; }
+
+#status-bar { position: fixed; bottom: 0; left: 0; right: 0; height: 32px; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; font-size: 12px; color: rgba(255,255,255,0.6); z-index: 50; }
+#status-bar .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+#status-bar .status-dot.online { background: #22c55e; }
+#status-bar .status-dot.offline { background: #ef4444; }
+#status-bar .status-dot.connecting { background: #eab308; }
+
+.transition-fade .slide { transition: opacity 0.8s ease; }
+.transition-slide .slide { transition: transform 0.8s ease; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="player-container"></div>
+  <div id="pair-screen">
+    <h1>Signage Player</h1>
+    <p>Ingresa el código de vinculación</p>
+    <input type="text" id="pair-code-input" placeholder="CÓDIGO" maxlength="6" autofocus>
+    <button id="pair-btn">Vincular</button>
+    <div id="pair-error"></div>
+  </div>
+  <div id="status-bar">
+    <span><span class="status-dot offline" id="status-dot"></span> <span id="status-text">Desconectado</span></span>
+    <span id="screen-name"></span>
+    <span id="time-display"></span>
+  </div>
+</div>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/player/sw.js').catch(function () {});
+}
+</script>
+<script>
+(function () {
+  'use strict';
+
+  var API_BASE = '/api';
+  var WS_BASE = (location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + location.host;
+  var HEARTBEAT_INTERVAL = 30000;
+  var screenId = null;
+  var currentIndex = 0;
+  var items = [];
+  var rotationTimer = null;
+  var ws = null;
+  var heartbeatTimer = null;
+
+  // --- DOM refs ---
+  var container = document.getElementById('player-container');
+  var pairScreen = document.getElementById('pair-screen');
+  var pairInput = document.getElementById('pair-code-input');
+  var pairBtn = document.getElementById('pair-btn');
+  var pairError = document.getElementById('pair-error');
+  var statusDot = document.getElementById('status-dot');
+  var statusText = document.getElementById('status-text');
+  var screenNameEl = document.getElementById('screen-name');
+  var timeDisplay = document.getElementById('time-display');
+
+  // --- Clock ---
+  function updateClock() {
+    var now = new Date();
+    timeDisplay.textContent = now.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
+  }
+  setInterval(updateClock, 10000);
+  updateClock();
+
+  // --- Status ---
+  function setStatus(state, text) {
+    statusDot.className = 'status-dot ' + state;
+    statusText.textContent = text;
+  }
+
+  // --- Pairing ---
+  pairBtn.addEventListener('click', doPair);
+  pairInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') doPair();
+  });
+
+  function doPair() {
+    var code = pairInput.value.trim().toUpperCase();
+    if (code.length !== 6) {
+      pairError.textContent = 'El código debe tener 6 caracteres';
+      return;
+    }
+    pairError.textContent = '';
+    pairBtn.disabled = true;
+    pairBtn.textContent = 'Vinculando...';
+
+    fetch(API_BASE + '/screens/pair', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: code })
+    })
+    .then(function (res) { return res.json(); })
+    .then(function (data) {
+      if (data.error) throw new Error(data.error);
+      screenId = data.id;
+      localStorage.setItem('signage_screen_id', screenId);
+      pairScreen.classList.add('hidden');
+      screenNameEl.textContent = data.name;
+      startPlayer();
+    })
+    .catch(function (err) {
+      pairError.textContent = err.message || 'Error al vincular';
+      pairBtn.disabled = false;
+      pairBtn.textContent = 'Vincular';
+    });
+  }
+
+  // --- Player ---
+  function startPlayer() {
+    if (!screenId) return;
+    setStatus('connecting', 'Conectando...');
+    connectWebSocket();
+    fetchPlaylist();
+    startHeartbeat();
+  }
+
+  function fetchPlaylist() {
+    fetch(API_BASE + '/player/' + screenId)
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (data.items && data.items.length > 0) {
+          items = data.items;
+          currentIndex = 0;
+          renderCurrent();
+          startRotation();
+          itemCount = items.length;
+        } else {
+          showIdle();
+        }
+      })
+      .catch(function () {
+        showIdle();
+      });
+  }
+
+  function renderCurrent() {
+    if (!items.length) return;
+    var item = items[currentIndex];
+    if (!item || !item.content) return;
+    container.innerHTML = '';
+    var div = document.createElement('div');
+    div.className = 'slide active';
+
+    switch (item.content.type) {
+      case 'webpage':
+      case 'dashboard':
+        var iframe = document.createElement('iframe');
+        iframe.src = item.content.url;
+        iframe.allow = 'autoplay';
+        div.appendChild(iframe);
+        break;
+      case 'image':
+        var img = document.createElement('img');
+        img.src = item.content.url || item.content.filePath;
+        img.alt = item.content.title;
+        div.appendChild(img);
+        break;
+      case 'video':
+        var video = document.createElement('video');
+        video.src = item.content.url || item.content.filePath;
+        video.autoplay = true;
+        video.muted = true;
+        video.loop = false;
+        video.playsInline = true;
+        video.controls = false;
+        videoElement = video;
+        div.appendChild(video);
+        video.play().catch(function () {});
+        video.addEventListener('ended', function () {
+          videoElement = null;
+          currentIndex = (currentIndex + 1) % items.length;
+          renderCurrent();
+        });
+        break;
+      case 'rss':
+        div.className = 'slide active rss-content';
+        div.innerHTML = '<h2 style="font-size:2em;margin-bottom:20px;">' + escapeHtml(item.content.title) + '</h2>' +
+          (item.content.url ? '<p style="font-size:1.2em;opacity:0.7;">' + escapeHtml(item.content.url) + '</p>' : '');
+        break;
+      case 'html':
+        div.className = 'slide active html-content';
+        if (item.content.url) {
+          var iframe2 = document.createElement('iframe');
+          iframe2.src = item.content.url;
+          iframe2.style.width = '100%';
+          iframe2.style.height = '100%';
+          iframe2.style.border = '0';
+          div.appendChild(iframe2);
+        } else {
+          div.innerHTML = '<h2>' + escapeHtml(item.content.title) + '</h2>';
+        }
+        break;
+      default:
+        div.innerHTML = '<h2>' + escapeHtml(item.content.title) + '</h2>';
+    }
+    container.appendChild(div);
+    if (item.content.type !== 'video') {
+      scheduleNext();
+    }
+  }
+
+  var videoElement = null;
+
+  function startRotation() {
+    if (rotationTimer) clearInterval(rotationTimer);
+    if (items.length < 2) return;
+    videoElement = null;
+    scheduleNext();
+  }
+
+  function scheduleNext() {
+    if (rotationTimer) clearTimeout(rotationTimer);
+    var item = items[currentIndex];
+    var dur = (item && item.duration) || 10;
+    if (item && item.content && item.content.type === 'video') {
+      return;
+    }
+    rotationTimer = setTimeout(function () {
+      currentIndex = (currentIndex + 1) % items.length;
+      renderCurrent();
+    }, dur * 1000);
+  }
+
+  function showIdle() {
+    container.innerHTML = '<div class="slide active" style="flex-direction:column;gap:16px;">' +
+      '<h2 style="font-size:2em;">Signage Player</h2>' +
+      '<p style="opacity:0.5;">Esperando contenido...</p></div>';
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  // --- WebSocket ---
+  function connectWebSocket() {
+    if (ws) { ws.close(); }
+    ws = new WebSocket(WS_BASE + '/ws/screen/' + screenId);
+    ws.onopen = function () {
+      setStatus('online', 'Conectado');
+    };
+    ws.onmessage = function (event) {
+      try {
+        var msg = JSON.parse(event.data);
+        if (msg.type === 'playlist_update' || msg.type === 'content_update') {
+          fetchPlaylist();
+        }
+      } catch (e) {}
+    };
+    ws.onclose = function () {
+      setStatus('offline', 'Desconectado');
+      setTimeout(connectWebSocket, 5000);
+    };
+    ws.onerror = function () {
+      ws.close();
+    };
+  }
+
+  // --- Heartbeat ---
+  function startHeartbeat() {
+    if (heartbeatTimer) clearInterval(heartbeatTimer);
+    heartbeatTimer = setInterval(function () {
+      fetch(API_BASE + '/screens/heartbeat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ screenId: screenId })
+      }).catch(function () {});
+    }, HEARTBEAT_INTERVAL);
+  }
+
+  // --- Auto-update ---
+  var playerVersion = localStorage.getItem('signage_player_version') || '';
+  var UPDATE_CHECK_INTERVAL = 60000;
+
+  function checkPlayerUpdate() {
+    fetch(API_BASE + '/player/version')
+      .then(function (res) { return res.json(); })
+      .then(function (data) {
+        if (data.version && data.version !== playerVersion) {
+          localStorage.setItem('signage_player_version', data.version);
+          location.reload();
+        }
+      })
+      .catch(function () {});
+  }
+  setInterval(checkPlayerUpdate, UPDATE_CHECK_INTERVAL);
+  checkPlayerUpdate();
+
+  // --- Init ---
+  var storedId = localStorage.getItem('signage_screen_id');
+  if (storedId) {
+    screenId = storedId;
+    pairScreen.classList.add('hidden');
+    screenNameEl.textContent = 'Pantalla';
+    startPlayer();
+  }
+})();
+</script>
+</body>
+</html>

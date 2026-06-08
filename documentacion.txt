@@ -1,0 +1,387 @@
+================================================================================
+  SCREEN CLOUD LOCAL - Documentación del Proyecto
+  Plataforma de Señalización Digital Interna
+================================================================================
+
+1. DESCRIPCIÓN GENERAL
+--------------------------------------------------------------------------------
+Screen Cloud Local es una plataforma de señalización digital (digital signage)
+diseñada para correr internamente en la red de una empresa. Permite gestionar
+pantallas/TVs desde una interfaz web responsive (accesible desde PC y celular),
+y mostrar contenido programado como dashboards, videos, imágenes, feeds RSS,
+páginas web, y HTML personalizado.
+
+
+2. ARQUITECTURA
+--------------------------------------------------------------------------------
+
+                         RED INTERNA DE LA EMPRESA
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │                                                                     │
+  │  ┌──────────────────────────────────────────────────────────┐       │
+  │  │                    SERVIDOR CENTRAL                       │       │
+  │  │                                                          │       │
+  │  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌─────────┐ │       │
+  │  │  │ BACKEND  │  │ FRONTEND │  │  MINIO   │  │  POSTGRE│ │       │
+  │  │  │ Fastify  │  │  React   │  │ (Assets) │  │   SQL   │ │       │
+  │  │  │ + TS     │  │ (Vite)   │  │          │  │         │ │       │
+  │  │  └────┬─────┘  └──────────┘  └──────────┘  └─────────┘ │       │
+  │  │       │                                                 │       │
+  │  │  ┌────▼─────┐                                          │       │
+  │  │  │   Redis   │                                          │       │
+  │  │  └──────────┘                                          │       │
+  │  └──────────────────────────────────────────────────────────┘       │
+  │                          │ HTTP / WebSocket                         │
+  │     ┌────────────────────┼──────────────────────────────┐           │
+  │     │                    │                              │           │
+  │  ┌──▼───┐          ┌────▼───┐                   ┌──────▼───┐       │
+  │  │  WEB  │          │ TABLET │                   │ SMART TV │       │
+  │  │ ADMIN │          │ PLAYER │                   │  PLAYER  │       │
+  │  │ (Resp)│          │(Browser│                   │ (Browser │       │
+  │  │       │          │ kiosk)  │                   │  nativo) │       │
+  │  └───────┘          └────────┘                   └──────────┘       │
+  └─────────────────────────────────────────────────────────────────────┘
+
+
+3. STACK TECNOLÓGICO
+--------------------------------------------------------------------------------
+
+  +-----------------+------------------------------+--------------------------+
+  | Componente      | Tecnología                   | Propósito               |
+  +-----------------+------------------------------+--------------------------+
+  | Backend API     | Node.js + TypeScript +       | API REST + WebSocket    |
+  |                 | Fastify                      |                          |
+  | Frontend Admin  | React 18 + Vite +            | Interfaz de gestión     |
+  |                 | TailwindCSS                  | responsive              |
+  | Screen Player   | Vanilla JS (ES5 compatible)  | Reproductor en pantallas|
+  | ORM             | Drizzle ORM                  | Tipado fuerte, migrations|
+  | Base de Datos   | PostgreSQL 16                | Datos relacionales      |
+  | Cache/Realtime  | Redis                        | Pub/sub, sesiones       |
+  | Object Storage  | MinIO (S3-compatible)        | Videos, imágenes, assets|
+  | Autenticación   | JWT + OAuth2 (preparado)     | Login SSO               |
+  | Contenedores    | Docker + Docker Compose      | Despliegue reproducible |
+  +-----------------+------------------------------+--------------------------+
+
+
+4. ESTRUCTURA DEL PROYECTO
+--------------------------------------------------------------------------------
+
+  screen cloud local/
+  ├── server/                          # Backend API
+  │   ├── src/
+  │   │   ├── config/index.ts          # Configuración (env vars)
+  │   │   ├── db/
+  │   │   │   ├── index.ts             # Conexión a PostgreSQL
+  │   │   │   ├── migrate.ts           # Script de migraciones
+  │   │   │   ├── schema/              # Tablas Drizzle ORM
+  │   │   │   │   ├── index.ts
+  │   │   │   │   ├── organizations.ts
+  │   │   │   │   ├── users.ts
+  │   │   │   │   ├── screens.ts
+  │   │   │   │   ├── content.ts
+  │   │   │   │   ├── media.ts
+  │   │   │   │   ├── playlists.ts
+  │   │   │   │   └── schedules.ts
+  │   │   │   └── migrations/          # Migraciones SQL generadas
+  │   │   ├── modules/
+  │   │   │   ├── auth/routes.ts       # POST /api/auth/register, login, me
+  │   │   │   ├── content/routes.ts    # CRUD /api/content
+  │   │   │   ├── playlists/routes.ts  # CRUD /api/playlists + items
+  │   │   │   ├── schedules/routes.ts  # CRUD /api/schedules
+  │   │   │   ├── screens/routes.ts    # CRUD /api/screens + pair + heartbeat
+  │   │   │   └── player/routes.ts     # GET /api/player/:screenId
+  │   │   ├── plugins/auth.ts          # Plugin JWT + authenticate decorator
+  │   │   ├── ws/index.ts              # WebSocket handler por screen
+  │   │   └── index.ts                 # Entry point del servidor
+  │   ├── drizzle.config.ts
+  │   ├── Dockerfile
+  │   ├── package.json
+  │   └── tsconfig.json
+  │
+  ├── web/                             # Frontend Admin (React)
+  │   ├── src/
+  │   │   ├── components/
+  │   │   │   ├── Layout.tsx           # Layout principal con sidebar
+  │   │   │   └── Sidebar.tsx          # Navegación lateral
+  │   │   ├── hooks/
+  │   │   │   └── useAuth.tsx          # Contexto de autenticación
+  │   │   ├── lib/
+  │   │   │   └── api.ts               # Cliente HTTP con JWT
+  │   │   ├── pages/
+  │   │   │   ├── Login.tsx            # Login/Registro
+  │   │   │   ├── Dashboard.tsx        # Resumen de stats
+  │   │   │   ├── Content.tsx          # Gestión de contenido
+  │   │   │   ├── Playlists.tsx        # Playlists + items
+  │   │   │   ├── Schedules.tsx        # Programación calendarizada
+  │   │   │   ├── Screens.tsx          # Monitoreo de pantallas
+  │   │   │   └── Settings.tsx         # Perfil + vinculación
+  │   │   ├── App.tsx                  # Router principal
+  │   │   ├── main.tsx                 # Entry point
+  │   │   └── index.css                # Estilos TailwindCSS
+  │   ├── index.html
+  │   ├── vite.config.ts               # Proxy /api -> :3000
+  │   ├── tailwind.config.js
+  │   ├── postcss.config.js
+  │   ├── package.json
+  │   └── tsconfig.json
+  │
+  ├── player/                          # Screen Player (Smart TV compatible)
+  │   └── index.html                   # HTML+JS vanilla, ES5 compatible
+  │
+  ├── docker-compose.yml               # PostgreSQL + Redis + MinIO + API
+  ├── .env.example                     # Variables de entorno de ejemplo
+  ├── .gitignore
+  └── setup.sh                         # Script de instalación
+
+
+5. BASE DE DATOS (9 TABLAS)
+--------------------------------------------------------------------------------
+
+  +---------------------+--------------------------------------------------+
+  | Tabla               | Descripción                                      |
+  +---------------------+--------------------------------------------------+
+  | organizations       | Organizaciones/empresas (multi-tenant listo)     |
+  | users               | Usuarios con auth local + OAuth preparado        |
+  | organization_members| Relación usuario-org con rol                     |
+  | screens             | Dispositivos/pantallas con heartbeat y pair code |
+  | content_items       | Contenido: webpage, image, video, dashboard,     |
+  |                     | rss, html                                        |
+  | media_assets        | Archivos subidos (imágenes, videos)              |
+  | playlists           | Colecciones de contenido                         |
+  | playlist_items      | Items dentro de una playlist (orden + duración)  |
+  | schedules           | Programación: qué playlist, qué pantalla,        |
+  |                     | cuándo (días, horas, rango de fechas)            |
+  +---------------------+--------------------------------------------------+
+
+
+6. ENDPOINTS DE LA API
+--------------------------------------------------------------------------------
+
+  AUTENTICACIÓN
+    POST   /api/auth/register     Registrar nuevo usuario
+    POST   /api/auth/login        Iniciar sesión (devuelve JWT)
+    GET    /api/auth/me           Obtener perfil del usuario autenticado
+
+  CONTENIDO
+    GET    /api/content           Listar contenido
+    GET    /api/content/:id       Obtener un contenido
+    POST   /api/content           Crear contenido
+    PUT    /api/content/:id       Actualizar contenido
+    DELETE /api/content/:id       Eliminar contenido
+
+  PLAYLISTS
+    GET    /api/playlists         Listar playlists
+    GET    /api/playlists/:id     Obtener playlist + items
+    POST   /api/playlists         Crear playlist
+    PUT    /api/playlists/:id     Actualizar playlist
+    DELETE /api/playlists/:id     Eliminar playlist
+    POST   /api/playlists/:id/items        Agregar item a playlist
+    DELETE /api/playlists/:playlistId/items/:itemId  Quitar item
+
+  PROGRAMACIÓN (SCHEDULES)
+    GET    /api/schedules         Listar programaciones
+    GET    /api/schedules/:id     Obtener una programación
+    POST   /api/schedules         Crear programación
+    PUT    /api/schedules/:id     Actualizar programación
+    DELETE /api/schedules/:id     Eliminar programación
+
+  PANTALLAS (SCREENS)
+    GET    /api/screens           Listar pantallas
+    GET    /api/screens/:id       Obtener pantalla
+    POST   /api/screens           Crear pantalla
+    PUT    /api/screens/:id       Actualizar pantalla
+    DELETE /api/screens/:id       Eliminar pantalla
+    POST   /api/screens/pair      Vincular pantalla por código
+    GET    /api/screens/pair-code Generar código de vinculación
+    POST   /api/screens/heartbeat Heartbeat de pantalla
+
+  PLAYER
+    GET    /api/player/:screenId  Obtener playlist activa para una pantalla
+
+  WEBSOCKET
+    WS     /ws/screen/:screenId   Canal en vivo para actualizaciones a pantalla
+
+  OTROS
+    GET    /health                Health check del servidor
+
+
+7. FLUJO DEL SCREEN PLAYER
+--------------------------------------------------------------------------------
+
+  1. El operador genera un código de vinculación desde la web admin
+     (Pantallas -> Generar código de vinculación).
+
+  2. En el TV/pantalla, abre la URL del player:
+        http://[servidor]:3000/player
+
+  3. Ingresa el código de 6 caracteres.
+
+  4. El servidor vincula la pantalla (cambia status a "online").
+
+  5. El player se conecta vía WebSocket al servidor.
+
+  6. El player consulta GET /api/player/:screenId para saber qué mostrar.
+
+  7. El servidor evalúa los schedules activos y devuelve la playlist
+     correspondiente.
+
+  8. El player reproduce los items en bucle (con la duración configurada).
+
+  9. Cada 30 segundos envía un heartbeat para mantener estado "online".
+
+  10. Si alguien cambia el schedule desde la web, se notifica al player
+      vía WebSocket y recarga la playlist.
+
+
+8. GUÍA DE INICIO RÁPIDO
+--------------------------------------------------------------------------------
+
+  REQUISITOS:
+    - Node.js 20+
+    - Docker Desktop (para PostgreSQL, Redis, MinIO)
+    - Navegador web (para el admin)
+
+  PASOS:
+
+    # 1. Ir al directorio del proyecto
+    cd ~/Desktop/screen\ cloud\ local
+
+    # 2. Iniciar servicios de infraestructura
+    docker compose up -d postgres redis minio
+
+    # 3. Instalar dependencias
+    cd server && npm install
+    cd ../web && npm install
+
+    # 4. Ejecutar migraciones de base de datos
+    cd ../server && npm run db:migrate
+
+    # 5. Iniciar backend (terminal 1)
+    npm run dev          # API en http://localhost:3000
+
+    # 6. Iniciar frontend (terminal 2)
+    cd ../web && npm run dev    # Admin en http://localhost:5173
+
+    # 7. Abrir el player
+    #    http://localhost:3000/player en cualquier navegador
+    #    (incluye Smart TV, tablet, Chromebox)
+
+
+  ACCESO:
+    - Admin web:  http://localhost:5173
+    - Player:     http://localhost:3000/player
+    - API docs:   http://localhost:3000/health
+    - MinIO Console: http://localhost:9001 (minioadmin/minioadmin)
+
+
+  PRODUCCIÓN:
+    docker compose up --build
+    # Todo corre en: http://localhost:3000
+    # (frontend build servido por el backend como estático)
+
+
+9. FUNCIONALIDADES CLAVE
+--------------------------------------------------------------------------------
+
+  ✓ Interfaz web responsive (PC + celular)
+  ✓ Reproductor universal (funciona en Smart TV, Chromebox, PC, tablet)
+  ✓ Gestión de contenido: páginas web, dashboards embebidos (iframes),
+    imágenes, videos, feeds RSS, HTML custom
+  ✓ Playlists con ordenamiento y duración personalizada por item
+  ✓ Programación calendarizada: días de semana, horas, rango de fechas
+  ✓ Asignación de contenido por pantalla individual o todas
+  ✓ Vinculación de pantallas mediante código de 6 dígitos
+  ✓ Monitoreo en vivo: estado online/offline, último heartbeat
+  ✓ Actualizaciones en tiempo real vía WebSocket
+  ✓ Autenticación JWT con preparación para OAuth2 (Azure AD, Google)
+  ✓ Multi-tenant listo (organizaciones)
+  ✓ Almacenamiento de assets en MinIO (S3-compatible interno)
+  - Próximo: Analytics, scheduling avanzado, exportación de reportes
+
+
+10. VARIABLES DE ENTORNO (.env)
+--------------------------------------------------------------------------------
+
+  PORT=3000                    Puerto del servidor API
+  HOST=0.0.0.0                Host del servidor
+  NODE_ENV=development        Modo de ejecución
+
+  DATABASE_URL=postgres://signage:signage@localhost:5432/signage
+
+  REDIS_URL=redis://localhost:6379
+
+  MINIO_ENDPOINT=localhost    Endpoint de MinIO para assets
+  MINIO_PORT=9000
+  MINIO_ACCESS_KEY=minioadmin
+  MINIO_SECRET_KEY=minioadmin
+  MINIO_BUCKET=signage
+
+  JWT_SECRET=...              Secreto para firmar tokens JWT
+  JWT_EXPIRES_IN=7d           Duración del token
+
+  OAUTH_ISSUER=               (opcional) URL del proveedor OAuth
+  OAUTH_CLIENT_ID=            (opcional) Client ID OAuth
+  OAUTH_CLIENT_SECRET=        (opcional) Client Secret OAuth
+  OAUTH_REDIRECT_URI=         (opcional) Redirect URI OAuth
+
+  DEFAULT_ORG_NAME=Mi Empresa Nombre por defecto de la organización
+
+
+11. TIPOS DE CONTENIDO SOPORTADOS
+--------------------------------------------------------------------------------
+
+  webpage    - Página web cualquiera (se muestra en iframe)
+  image      - Imagen (JPG, PNG, GIF, WebP)
+  video      - Video (H.264 MP4 recomendado para Smart TVs)
+  dashboard  - Dashboard embebido (Grafana, Metabase, etc.) en iframe
+  rss        - Feed RSS / noticias (título + descripción)
+  html       - HTML personalizado
+
+
+12. NOTAS TÉCNICAS
+--------------------------------------------------------------------------------
+
+  - El Screen Player (player/index.html) está escrito en JavaScript vanilla
+    sin dependencias externas, transpilado manualmente para compatibilidad
+    con navegadores de Smart TVs (Tizen, webOS, etc.).
+
+  - Para máxima compatibilidad de video en Smart TVs, usar códec H.264/AAC
+    en contenedor MP4.
+
+  - El frontend admin usa Vite con proxy a la API, por lo que en desarrollo
+    no hay problemas de CORS.
+
+  - En producción, el frontend se construye (vite build) y se sirve como
+    estático desde el servidor Fastify.
+
+  - El sistema está preparado para multi-tenant (organizaciones), aunque
+    en la versión actual se crea una sola organización por defecto.
+
+
+13. COMANDOS ÚTILES
+--------------------------------------------------------------------------------
+
+  # Backend
+  cd server
+  npm run dev              # Iniciar en modo desarrollo
+  npm run build            # Compilar TypeScript
+  npm run db:generate      # Generar migraciones desde schemas
+  npm run db:migrate       # Ejecutar migraciones en DB
+  npm run db:studio        # Abrir Drizzle Studio (UI de DB)
+
+  # Frontend
+  cd web
+  npm run dev              # Iniciar dev server
+  npm run build            # Build para producción
+
+  # Docker
+  docker compose up -d            # Iniciar servicios
+  docker compose up --build       # Build + iniciar todo
+  docker compose down             # Detener servicios
+
+
+================================================================================
+  Fin de la documentación
+  Proyecto: Screen Cloud Local
+  Ubicación: ~/Desktop/screen cloud local/
+================================================================================
