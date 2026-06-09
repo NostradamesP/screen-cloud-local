@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { useConfirm } from "@/hooks/useConfirm";
 import { Plus, Pencil, Trash2, Puzzle } from "lucide-react";
 
 export default function Widgets() {
+  const { confirm, dialog } = useConfirm();
   const [widgets, setWidgets] = useState<any[]>([]);
   const [definitions, setDefinitions] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -39,7 +41,12 @@ export default function Widgets() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("¿Eliminar este widget?")) return;
+    const ok = await confirm({
+      title: "Eliminar widget",
+      message: "El widget se eliminará y dejará de estar disponible para layouts o pantallas que lo usen.",
+      confirmLabel: "Eliminar",
+    });
+    if (!ok) return;
     await api.widgets.delete(id);
     load();
   };
@@ -103,6 +110,7 @@ export default function Widgets() {
           <p className="text-gray-500 col-span-full text-center py-8">No hay widgets aún.</p>
         )}
       </div>
+      {dialog}
     </div>
   );
 }

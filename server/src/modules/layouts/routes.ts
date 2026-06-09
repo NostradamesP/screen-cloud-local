@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { z } from "zod";
 import { db } from "../../db";
-import { layouts, layoutZones } from "../../db/schema";
+import { contentItems, layouts, layoutZones, playlists } from "../../db/schema";
 import { eq, and } from "drizzle-orm";
 
 const createLayoutSchema = z.object({
@@ -24,6 +24,24 @@ const createZoneSchema = z.object({
 
 export async function layoutRoutes(fastify: FastifyInstance) {
   fastify.addHook("preHandler", fastify.authenticate);
+
+  async function validateZoneRefs(orgId: string, body: Partial<z.infer<typeof createZoneSchema>>, reply: FastifyReply) {
+    if (body.playlistId) {
+      const [playlist] = await db.select({ id: playlists.id }).from(playlists).where(and(eq(playlists.id, body.playlistId), eq(playlists.organizationId, orgId)));
+      if (!playlist) {
+        reply.status(404).send({ error: "Playlist not found" });
+        return false;
+      }
+    }
+    if (body.contentItemId) {
+      const [content] = await db.select({ id: contentItems.id }).from(contentItems).where(and(eq(contentItems.id, body.contentItemId), eq(contentItems.organizationId, orgId)));
+      if (!content) {
+        reply.status(404).send({ error: "Content item not found" });
+        return false;
+      }
+    }
+    return true;
+  }
 
   fastify.get("/api/layouts", async (request: FastifyRequest) => {
     const { orgId } = request.user;
@@ -93,6 +111,7 @@ export async function layoutRoutes(fastify: FastifyInstance) {
     const [layout] = await db.select().from(layouts).where(and(eq(layouts.id, id), eq(layouts.organizationId, orgId)));
     if (!layout) return reply.status(404).send({ error: "Layout not found" });
     const body = createZoneSchema.parse(request.body);
+    if (!(await validateZoneRefs(orgId, body, reply))) return;
     const [zone] = await db.insert(layoutZones).values({
       layoutId: id,
       name: body.name,
@@ -116,6 +135,7 @@ export async function layoutRoutes(fastify: FastifyInstance) {
     const [layout] = await db.select().from(layouts).where(and(eq(layouts.id, layoutId), eq(layouts.organizationId, orgId)));
     if (!layout) return reply.status(404).send({ error: "Layout not found" });
     const body = createZoneSchema.partial().parse(request.body);
+    if (!(await validateZoneRefs(orgId, body, reply))) return;
     const [updated] = await db.update(layoutZones)
       .set({ ...body, updatedAt: new Date() })
       .where(and(eq(layoutZones.id, zoneId), eq(layoutZones.layoutId, layoutId)))
@@ -128,6 +148,9 @@ export async function layoutRoutes(fastify: FastifyInstance) {
     preHandler: [fastify.requireRole("admin", "editor")],
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { layoutId, zoneId } = request.params as { layoutId: string; zoneId: string };
+    const { orgId } = request.user;
+    const [layout] = await db.select({ id: layouts.id }).from(layouts).where(and(eq(layouts.id, layoutId), eq(layouts.organizationId, orgId)));
+    if (!layout) return reply.status(404).send({ error: "Layout not found" });
     const [deleted] = await db.delete(layoutZones)
       .where(and(eq(layoutZones.id, zoneId), eq(layoutZones.layoutId, layoutId)))
       .returning();

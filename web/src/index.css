@@ -10,7 +10,14 @@
 
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
+    @apply inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 ease-out focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
+    transform: translateZ(0);
+  }
+  .btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+  }
+  .btn:active:not(:disabled) {
+    transform: translateY(0);
   }
   .btn-primary {
     @apply btn bg-brand-600 text-white hover:bg-brand-700 focus:ring-brand-500;
@@ -25,7 +32,11 @@
     @apply block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500;
   }
   .card {
-    @apply rounded-xl border border-gray-200 bg-white p-6 shadow-sm;
+    @apply rounded-xl border border-gray-200 bg-white p-6 shadow-sm transition-all duration-200 ease-out;
+  }
+  .card:hover {
+    @apply border-gray-300 shadow-md;
+    transform: translateY(-1px);
   }
   .label {
     @apply block text-sm font-medium text-gray-700 mb-1;
@@ -42,6 +53,12 @@
   .animate-scale-in {
     animation: scaleIn 0.15s ease-out;
   }
+  .animate-soft-pop {
+    animation: softPop 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .animate-list-in {
+    animation: listIn 0.24s ease-out both;
+  }
 }
 
 @keyframes fadeIn {
@@ -57,4 +74,27 @@
 @keyframes scaleIn {
   from { opacity: 0; transform: scale(0.95); }
   to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes softPop {
+  from { opacity: 0; transform: translateY(6px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes listIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+  .btn:hover:not(:disabled),
+  .card:hover {
+    transform: none;
+  }
 }

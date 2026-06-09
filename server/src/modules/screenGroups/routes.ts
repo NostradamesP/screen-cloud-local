@@ -1,8 +1,8 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { z } from "zod";
 import { db } from "../../db";
-import { screenGroups, screenGroupScreens } from "../../db/schema";
-import { eq, and } from "drizzle-orm";
+import { screenGroups, screenGroupScreens, screens } from "../../db/schema";
+import { eq, and, inArray } from "drizzle-orm";
 
 const createGroupSchema = z.object({
   name: z.string().min(1).max(255),
@@ -11,6 +11,19 @@ const createGroupSchema = z.object({
 
 export async function screenGroupRoutes(fastify: FastifyInstance) {
   fastify.addHook("preHandler", fastify.authenticate);
+
+  async function validateScreens(orgId: string, screenIds: string[] | undefined, reply: FastifyReply) {
+    if (!screenIds || screenIds.length === 0) return true;
+    const uniqueIds = [...new Set(screenIds)];
+    const orgScreens = await db.select({ id: screens.id }).from(screens).where(
+      and(inArray(screens.id, uniqueIds), eq(screens.organizationId, orgId))
+    );
+    if (orgScreens.length !== uniqueIds.length) {
+      reply.status(404).send({ error: "One or more screens were not found" });
+      return false;
+    }
+    return true;
+  }
 
   fastify.get("/api/screen-groups", async (request: FastifyRequest) => {
     const { orgId } = request.user;
@@ -46,6 +59,7 @@ export async function screenGroupRoutes(fastify: FastifyInstance) {
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     const body = createGroupSchema.parse(request.body);
     const { orgId } = request.user;
+    if (!(await validateScreens(orgId, body.screenIds, reply))) return;
     const [group] = await db.insert(screenGroups).values({
       organizationId: orgId,
       name: body.name,
@@ -66,6 +80,7 @@ export async function screenGroupRoutes(fastify: FastifyInstance) {
     const { id } = request.params as { id: string };
     const { orgId } = request.user;
     const body = createGroupSchema.partial().parse(request.body);
+    if (!(await validateScreens(orgId, body.screenIds, reply))) return;
     const [group] = await db.update(screenGroups)
       .set(body.name ? { name: body.name } : {})
       .where(and(eq(screenGroups.id, id), eq(screenGroups.organizationId, orgId)))

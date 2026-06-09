@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { useConfirm } from "@/hooks/useConfirm";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 
 const DAYS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
 export default function Schedules() {
+  const { confirm, dialog } = useConfirm();
   const [schedules, setSchedules] = useState<any[]>([]);
   const [playlists, setPlaylists] = useState<any[]>([]);
   const [screens, setScreens] = useState<any[]>([]);
@@ -88,7 +90,12 @@ export default function Schedules() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("¿Eliminar esta programación?")) return;
+    const ok = await confirm({
+      title: "Eliminar programación",
+      message: "La programación se eliminará y las pantallas volverán a usar su contenido idle si lo tienen asignado.",
+      confirmLabel: "Eliminar",
+    });
+    if (!ok) return;
     await api.schedules.delete(id);
     load();
   };
@@ -212,6 +219,7 @@ export default function Schedules() {
           <p className="text-gray-500 text-center py-8">No hay programaciones aún.</p>
         )}
       </div>
+      {dialog}
     </div>
   );
 }

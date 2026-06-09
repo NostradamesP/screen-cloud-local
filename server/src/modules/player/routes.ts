@@ -140,7 +140,9 @@ export async function playerRoutes(fastify: FastifyInstance) {
 
     if (!matchedSchedule) {
       if (screen.idleContentId) {
-        const [idleContent] = await db.select().from(contentItems).where(eq(contentItems.id, screen.idleContentId));
+        const [idleContent] = await db.select().from(contentItems).where(
+          and(eq(contentItems.id, screen.idleContentId), eq(contentItems.organizationId, screen.organizationId))
+        );
         return {
           screen: playerScreenPayload(screen),
           schedule: null,
@@ -171,7 +173,7 @@ export async function playerRoutes(fastify: FastifyInstance) {
     }
 
     const playlist = await db.select().from(playlists)
-      .where(eq(playlists.id, matchedSchedule.playlistId))
+      .where(and(eq(playlists.id, matchedSchedule.playlistId), eq(playlists.organizationId, screen.organizationId)))
       .then((r) => r[0]);
 
     const items = await db.select({
@@ -179,7 +181,7 @@ export async function playerRoutes(fastify: FastifyInstance) {
       content: contentItems,
     })
       .from(playlistItems)
-      .leftJoin(contentItems, eq(playlistItems.contentItemId, contentItems.id))
+      .leftJoin(contentItems, and(eq(playlistItems.contentItemId, contentItems.id), eq(contentItems.organizationId, screen.organizationId)))
       .where(eq(playlistItems.playlistId, matchedSchedule.playlistId))
       .orderBy(playlistItems.position);
 

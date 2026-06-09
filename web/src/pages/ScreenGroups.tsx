@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { useConfirm } from "@/hooks/useConfirm";
 import { Plus, Pencil, Trash2, Layers } from "lucide-react";
 
 export default function ScreenGroups() {
+  const { confirm, dialog } = useConfirm();
   const [groups, setGroups] = useState<any[]>([]);
   const [screens, setScreens] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -40,7 +42,12 @@ export default function ScreenGroups() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("¿Eliminar este grupo?")) return;
+    const ok = await confirm({
+      title: "Eliminar grupo",
+      message: "El grupo se eliminará y sus pantallas dejarán de recibir programaciones asociadas a ese grupo.",
+      confirmLabel: "Eliminar",
+    });
+    if (!ok) return;
     await api.screenGroups.delete(id);
     load();
   };
@@ -140,6 +147,7 @@ export default function ScreenGroups() {
           <p className="text-gray-500 col-span-full text-center py-8">No hay grupos aún. Crea tu primer grupo.</p>
         )}
       </div>
+      {dialog}
     </div>
   );
 }

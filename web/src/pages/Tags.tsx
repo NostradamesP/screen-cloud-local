@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { useConfirm } from "@/hooks/useConfirm";
 import { Plus, Pencil, Trash2, Hash } from "lucide-react";
 
 const COLORS = ["#6366f1", "#ef4444", "#22c55e", "#f59e0b", "#3b82f6", "#ec4899", "#14b8a6", "#a855f7"];
 
 export default function Tags() {
+  const { confirm, dialog } = useConfirm();
   const [tags, setTags] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<any>(null);
@@ -21,7 +23,12 @@ export default function Tags() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("¿Eliminar etiqueta?")) return;
+    const ok = await confirm({
+      title: "Eliminar etiqueta",
+      message: "La etiqueta se eliminará de la biblioteca y se quitará de los contenidos asociados.",
+      confirmLabel: "Eliminar",
+    });
+    if (!ok) return;
     await api.tags.delete(id); load();
   };
 
@@ -66,6 +73,7 @@ export default function Tags() {
         ))}
         {tags.length === 0 && <p className="text-gray-500">No hay etiquetas.</p>}
       </div>
+      {dialog}
     </div>
   );
 }

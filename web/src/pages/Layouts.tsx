@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { useConfirm } from "@/hooks/useConfirm";
 import { Plus, Pencil, Trash2, Layout as LayoutIcon } from "lucide-react";
 
 export default function Layouts() {
+  const { confirm, dialog } = useConfirm();
   const [layouts, setLayouts] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<any>(null);
@@ -36,7 +38,12 @@ export default function Layouts() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("¿Eliminar este layout?")) return;
+    const ok = await confirm({
+      title: "Eliminar layout",
+      message: "El layout y sus zonas serán eliminados. Las pantallas que dependan de él podrían quedar sin esa composición.",
+      confirmLabel: "Eliminar",
+    });
+    if (!ok) return;
     await api.layouts.delete(id);
     load();
   };
@@ -72,7 +79,12 @@ export default function Layouts() {
   };
 
   const deleteZone = async (layoutId: string, zoneId: string) => {
-    if (!confirm("¿Eliminar esta zona?")) return;
+    const ok = await confirm({
+      title: "Eliminar zona",
+      message: "La zona se quitará del layout.",
+      confirmLabel: "Eliminar",
+    });
+    if (!ok) return;
     await api.layouts.deleteZone(layoutId, zoneId);
     toggleExpand(layoutId);
   };
@@ -177,6 +189,7 @@ export default function Layouts() {
           <p className="text-gray-500 text-center py-8">No hay layouts aún.</p>
         )}
       </div>
+      {dialog}
     </div>
   );
 }

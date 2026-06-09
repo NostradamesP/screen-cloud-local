@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { db } from "../../db";
 import { mediaAssets } from "../../db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { v4 as uuid } from "uuid";
 import path from "path";
 import { saveFile, deleteFile, getFileStream, getFileSize, getContentType } from "../../storage";
@@ -29,7 +29,11 @@ export async function mediaRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ error: `File type ${mimeType} not allowed. Allowed: ${ALLOWED_TYPES.join(", ")}` });
     }
 
-    const ext = path.extname(data.filename) || ".bin";
+    const ext = path.extname(data.filename).toLowerCase();
+    const allowedExt = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".mp4", ".webm", ".ogg"];
+    if (!allowedExt.includes(ext)) {
+      return reply.status(400).send({ error: "File extension not allowed" });
+    }
     const filename = `${uuid()}${ext}`;
     const buffer = await data.toBuffer();
     const size = buffer.length;
@@ -54,9 +58,9 @@ export async function mediaRoutes(fastify: FastifyInstance) {
     const { id } = request.params as { id: string };
     const { orgId } = request.user;
     const [asset] = await db.select().from(mediaAssets).where(
-      eq(mediaAssets.id, id)
+      and(eq(mediaAssets.id, id), eq(mediaAssets.organizationId, orgId))
     );
-    if (!asset || asset.organizationId !== orgId) {
+    if (!asset) {
       return reply.status(404).send({ error: "Media not found" });
     }
     await deleteFile(orgId, asset.filename);
@@ -67,8 +71,13 @@ export async function mediaRoutes(fastify: FastifyInstance) {
   fastify.get("/api/media/file/:orgId/:filename", async (request: FastifyRequest, reply: FastifyReply) => {
     const { orgId, filename } = request.params as { orgId: string; filename: string };
     try {
+      if (request.user.orgId !== orgId) return reply.status(404).send({ error: "File not found" });
+      const [asset] = await db.select({ id: mediaAssets.id, mimeType: mediaAssets.mimeType }).from(mediaAssets).where(
+        and(eq(mediaAssets.organizationId, orgId), eq(mediaAssets.filename, filename))
+      );
+      if (!asset) return reply.status(404).send({ error: "File not found" });
       const stream = getFileStream(orgId, filename);
-      const mimeType = getContentType(filename);
+      const mimeType = asset.mimeType || getContentType(filename);
       reply.header("Content-Type", mimeType);
       reply.header("Cache-Control", "public, max-age=31536000");
       return reply.send(stream);
@@ -83,8 +92,12 @@ export async function publicMediaRoutes(fastify: FastifyInstance) {
     const { orgId, filename } = request.params as { orgId: string; filename: string };
 
     try {
+      const [asset] = await db.select({ id: mediaAssets.id, mimeType: mediaAssets.mimeType }).from(mediaAssets).where(
+        and(eq(mediaAssets.organizationId, orgId), eq(mediaAssets.filename, filename))
+      );
+      if (!asset) return reply.status(404).send({ error: "File not found" });
       const totalSize = await getFileSize(orgId, filename);
-      const mimeType = getContentType(filename);
+      const mimeType = asset.mimeType || getContentType(filename);
       const rangeHeader = request.headers.range;
 
       reply.header("Accept-Ranges", "bytes");

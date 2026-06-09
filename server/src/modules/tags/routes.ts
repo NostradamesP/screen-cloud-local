@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { z } from "zod";
 import { db } from "../../db";
-import { tags, contentTags } from "../../db/schema";
+import { contentItems, tags, contentTags } from "../../db/schema";
 import { eq, and, inArray } from "drizzle-orm";
 
 const createTagSchema = z.object({ name: z.string().min(1).max(100), color: z.string().optional() });
@@ -40,7 +40,15 @@ export async function tagRoutes(fastify: FastifyInstance) {
 
   fastify.post("/api/content/:id/tags", { preHandler: [fastify.requireRole("admin", "editor")] }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
+    const { orgId } = request.user;
     const body = z.object({ tagIds: z.array(z.string().uuid()) }).parse(request.body);
+    const [content] = await db.select({ id: contentItems.id }).from(contentItems).where(and(eq(contentItems.id, id), eq(contentItems.organizationId, orgId)));
+    if (!content) return reply.status(404).send({ error: "Content not found" });
+    if (body.tagIds.length > 0) {
+      const uniqueTagIds = [...new Set(body.tagIds)];
+      const orgTags = await db.select({ id: tags.id }).from(tags).where(and(inArray(tags.id, uniqueTagIds), eq(tags.organizationId, orgId)));
+      if (orgTags.length !== uniqueTagIds.length) return reply.status(404).send({ error: "One or more tags were not found" });
+    }
     await db.delete(contentTags).where(eq(contentTags.contentId, id));
     if (body.tagIds.length > 0) await db.insert(contentTags).values(body.tagIds.map(tagId => ({ contentId: id, tagId })));
     return reply.status(200).send({ ok: true });
@@ -48,6 +56,9 @@ export async function tagRoutes(fastify: FastifyInstance) {
 
   fastify.get("/api/content/:id/tags", async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
+    const { orgId } = request.user;
+    const [content] = await db.select({ id: contentItems.id }).from(contentItems).where(and(eq(contentItems.id, id), eq(contentItems.organizationId, orgId)));
+    if (!content) return reply.status(404).send({ error: "Content not found" });
     const rows = await db.select({ tagId: contentTags.tagId }).from(contentTags).where(eq(contentTags.contentId, id));
     return rows.map(r => r.tagId);
   });

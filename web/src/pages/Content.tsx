@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { useConfirm } from "@/hooks/useConfirm";
 import { Plus, Pencil, Trash2, Upload, FileVideo, FileImage, Send, Eye } from "lucide-react";
 
 const CONTENT_TYPES: Record<string, string> = {
@@ -14,6 +15,7 @@ const CONTENT_TYPES: Record<string, string> = {
 const FILE_TYPES = ["image", "video"];
 
 export default function Content() {
+  const { confirm, dialog } = useConfirm();
   const [items, setItems] = useState<any[]>([]);
   const [mediaItems, setMediaItems] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -23,6 +25,7 @@ export default function Content() {
   const [showMediaPicker, setShowMediaPicker] = useState(false);
   const [tags, setTags] = useState<any[]>([]);
   const [contentTags, setContentTags] = useState<Record<string, string[]>>({});
+  const [error, setError] = useState("");
 
   const load = async () => {
     const [data, media, tagList] = await Promise.all([
@@ -88,7 +91,12 @@ export default function Content() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("¿Eliminar este contenido?")) return;
+    const ok = await confirm({
+      title: "Eliminar contenido",
+      message: "Este contenido dejará de estar disponible para pantallas, playlists o programaciones que lo usen.",
+      confirmLabel: "Eliminar",
+    });
+    if (!ok) return;
     await api.content.delete(id);
     load();
   };
@@ -98,6 +106,7 @@ export default function Content() {
     if (!file) return;
     setUploading(true);
     try {
+      setError("");
       const asset = await api.media.upload(file);
       setForm({
         ...form,
@@ -107,7 +116,7 @@ export default function Content() {
       });
       await load();
     } catch (err: any) {
-      alert(err.message);
+      setError(err.message || "No se pudo subir el archivo.");
     } finally {
       setUploading(false);
       e.target.value = "";
@@ -140,6 +149,12 @@ export default function Content() {
           <Plus className="h-4 w-4 mr-2" /> Nuevo
         </button>
       </div>
+
+      {error && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 animate-slide-down">
+          {error}
+        </div>
+      )}
 
       {showForm && (
         <div className="card mb-6">
@@ -297,6 +312,7 @@ export default function Content() {
           <p className="text-gray-500 col-span-full text-center py-8">No hay contenido aún. Crea tu primer elemento.</p>
         )}
       </div>
+      {dialog}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { z } from "zod";
 import { db } from "../../db";
-import { screens, SCREEN_PURPOSES } from "../../db/schema";
+import { contentItems, screens, SCREEN_PURPOSES } from "../../db/schema";
 import { eq, and } from "drizzle-orm";
 import { v4 as uuid } from "uuid";
 import { cacheDel } from "../../lib/cache";
@@ -51,6 +51,18 @@ function normalizeSettings(settings: unknown): Record<string, unknown> {
 }
 
 export async function screenRoutes(fastify: FastifyInstance) {
+  async function validateIdleContent(orgId: string, idleContentId: string | undefined, reply: FastifyReply) {
+    if (!idleContentId) return true;
+    const [content] = await db.select({ id: contentItems.id }).from(contentItems).where(
+      and(eq(contentItems.id, idleContentId), eq(contentItems.organizationId, orgId))
+    );
+    if (!content) {
+      reply.status(404).send({ error: "Idle content not found" });
+      return false;
+    }
+    return true;
+  }
+
   fastify.get("/api/screens", {
     preHandler: [fastify.authenticate],
   }, async (request: FastifyRequest) => {
@@ -75,6 +87,7 @@ export async function screenRoutes(fastify: FastifyInstance) {
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     const body = createScreenSchema.parse(request.body);
     const { orgId } = request.user;
+    if (!(await validateIdleContent(orgId, body.idleContentId, reply))) return;
     const pairCode = generatePairCode();
     const [screen] = await db.insert(screens).values({
       organizationId: orgId,
@@ -98,6 +111,7 @@ export async function screenRoutes(fastify: FastifyInstance) {
     const { id } = request.params as { id: string };
     const { orgId } = request.user;
     const body = createScreenSchema.partial().parse(request.body);
+    if (!(await validateIdleContent(orgId, body.idleContentId, reply))) return;
     const updateData = {
       ...body,
       ...(body.settings ? { settings: normalizeSettings(body.settings) } : {}),

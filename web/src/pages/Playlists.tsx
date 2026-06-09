@@ -1,8 +1,10 @@
 import { useEffect, useState, useCallback } from "react";
 import { api } from "@/lib/api";
+import { useConfirm } from "@/hooks/useConfirm";
 import { Plus, Pencil, Trash2, ChevronDown, ChevronRight, GripVertical } from "lucide-react";
 
 export default function Playlists() {
+  const { confirm, dialog } = useConfirm();
   const [playlists, setPlaylists] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<any>(null);
@@ -50,7 +52,12 @@ export default function Playlists() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("¿Eliminar esta playlist?")) return;
+    const ok = await confirm({
+      title: "Eliminar playlist",
+      message: "La playlist se eliminará y dejará de estar disponible para programaciones o layouts.",
+      confirmLabel: "Eliminar",
+    });
+    if (!ok) return;
     await api.playlists.delete(id);
     load();
   };
@@ -104,7 +111,12 @@ export default function Playlists() {
   };
 
   const deleteItem = async (playlistId: string, itemId: string) => {
-    if (!confirm("¿Eliminar este item?")) return;
+    const ok = await confirm({
+      title: "Quitar item",
+      message: "Este contenido se quitará de la playlist, pero seguirá existiendo en la biblioteca.",
+      confirmLabel: "Quitar",
+    });
+    if (!ok) return;
     await api.playlists.removeItem(playlistId, itemId);
     toggleExpand(playlistId);
   };
@@ -207,6 +219,7 @@ export default function Playlists() {
           <p className="text-gray-500 text-center py-8">No hay playlists aún.</p>
         )}
       </div>
+      {dialog}
     </div>
   );
 }
