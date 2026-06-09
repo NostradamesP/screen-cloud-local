@@ -32,33 +32,34 @@ body.player-idle #app::before, body.player-pairing #app::before { opacity: 1; }
   --tpl-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --tpl-radius: 4px;
   --tpl-media-fit: cover;
-  --tpl-ticker-speed: 12s; }
+  --tpl-ticker-speed: 12s;
+  --tpl-scale: 1; }
 .slide.template-media_left, .slide.template-media_right,
 .slide.template-center_stage, .slide.template-hero_overlay {
   display: grid; grid-template-rows: 82% 18%; align-items: stretch; justify-content: stretch; background: var(--tpl-bg); color: var(--tpl-text); font-family: var(--tpl-font); }
-.tpl-grid { display: grid; grid-template-columns: 34% 42% 24%; height: 100%; min-height: 0; border: 2px solid var(--tpl-accent); border-bottom: 0; }
+.tpl-grid { display: grid; grid-template-columns: 34% 42% 24%; height: 100%; min-height: 0; border: 1px solid color-mix(in srgb, var(--tpl-accent) 76%, transparent); border-bottom: 0; }
 .template-media_right .tpl-grid { grid-template-columns: 42% 34% 24%; }
 .tpl-media { min-width: 0; min-height: 0; overflow: hidden; background: #e5e7eb; }
 .tpl-media img, .tpl-media video, .tpl-media iframe { width: 100%; height: 100%; object-fit: var(--tpl-media-fit, cover); border: 0; }
-.tpl-sidebar { display: flex; flex-direction: column; justify-content: center; padding: 4vh 3vw; background: linear-gradient(135deg, color-mix(in srgb, var(--tpl-primary) 24%, var(--tpl-bg)), color-mix(in srgb, var(--tpl-primary) 54%, var(--tpl-bg))); }
-.tpl-sidebar, .tpl-sidebar .tpl-headline, .tpl-sidebar .tpl-subtitle { color: color-mix(in srgb, var(--tpl-primary) 45%, #064e3b); }
-.tpl-badge { font-size: clamp(0.8rem, 1.4vw, 1.4rem); font-weight: 900; color: rgba(255,255,255,0.95); }
-.tpl-headline { margin-top: 0.8vh; font-size: clamp(1.4rem, 3vw, 3.6rem); font-weight: 950; line-height: 0.96; }
+.tpl-sidebar { display: flex; flex-direction: column; justify-content: center; padding: 4vh 3vw; background: linear-gradient(135deg, color-mix(in srgb, var(--tpl-primary) 12%, var(--tpl-bg)), color-mix(in srgb, var(--tpl-primary) 38%, var(--tpl-bg))); color: var(--tpl-text); }
+.tpl-sidebar .tpl-headline, .tpl-sidebar .tpl-subtitle { color: var(--tpl-text); }
+.tpl-badge { font-size: calc(clamp(0.75rem, 1.2vw, 1.25rem) * var(--tpl-scale)); font-weight: 850; color: var(--tpl-text); opacity: 0.86; }
+.tpl-headline { margin-top: 0.8vh; font-size: calc(clamp(1.4rem, 3vw, 3.6rem) * var(--tpl-scale)); font-weight: 900; line-height: 0.96; }
 .tpl-subrow { display: flex; align-items: center; gap: 1.2vw; margin-top: 2.5vh; }
 .tpl-qr { display: flex; width: clamp(44px, 4.5vw, 64px); aspect-ratio: 1; align-items: center; justify-content: center; border-radius: var(--tpl-radius); background: var(--tpl-bg); color: var(--tpl-accent); font-weight: 950; font-size: clamp(0.45rem, 0.6vw, 0.7rem); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-.tpl-subtitle { font-size: clamp(0.7rem, 1.1vw, 1.3rem); line-height: 1.2; color: rgba(255,255,255,0.92); max-width: 34ch; }
-.tpl-weather-right { display: flex; flex-direction: column; justify-content: center; padding: 3vh 2vw; background: var(--tpl-widget-bg); color: var(--tpl-text); border-left: 6px solid var(--tpl-accent); }
-.tpl-wloc { font-size: clamp(0.9rem, 1.6vw, 1.8rem); font-weight: 950; }
+.tpl-subtitle { font-size: calc(clamp(0.7rem, 1.1vw, 1.3rem) * var(--tpl-scale)); line-height: 1.2; color: var(--tpl-text); opacity: 0.8; max-width: 34ch; }
+.tpl-weather-right { display: flex; flex-direction: column; justify-content: center; padding: 3vh 2vw; background: var(--tpl-widget-bg); color: #fff; border-left: 1px solid color-mix(in srgb, var(--tpl-accent) 66%, transparent); }
+.tpl-wloc { font-size: calc(clamp(0.9rem, 1.6vw, 1.8rem) * var(--tpl-scale)); font-weight: 900; }
 .tpl-wpill { display: inline-flex; margin-top: 0.8vh; border-radius: var(--tpl-radius); background: rgba(255,255,255,0.82); padding: 0.3em 0.6em; color: color-mix(in srgb, var(--tpl-primary) 72%, #0f172a); font-size: clamp(0.4rem, 0.55vw, 0.65rem); font-weight: 900; }
 .tpl-wicon { margin-top: 3vh; font-size: clamp(2rem, 4vw, 4.5rem); line-height: 1; }
-.tpl-wtemp { margin-top: 2.5vh; font-size: clamp(1.5rem, 3vw, 3.6rem); font-weight: 950; }
+.tpl-wtemp { margin-top: 2.5vh; font-size: calc(clamp(1.5rem, 3vw, 3.6rem) * var(--tpl-scale)); font-weight: 900; }
 .tpl-wfeel { font-size: clamp(0.5rem, 0.65vw, 0.8rem); font-weight: 800; opacity: 0.9; }
 .tpl-center { height: 100%; display: grid; grid-template-rows: 1fr auto; background: #000; }
 .tpl-center-media { overflow: hidden; min-height: 0; background: #e5e7eb; }
 .tpl-center-media img, .tpl-center-media video, .tpl-center-media iframe { width: 100%; height: 100%; object-fit: var(--tpl-media-fit, contain); border: 0; }
 .tpl-center-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 1vw; padding: 1.5vh 3vw; background: color-mix(in srgb, var(--tpl-primary) 66%, #0f172a); color: #fff; }
 .tpl-center-badge { font-size: clamp(0.6rem, 0.85vw, 0.95rem); font-weight: 800; opacity: 0.95; }
-.tpl-center-headline { font-size: clamp(0.9rem, 1.6vw, 2rem); font-weight: 950; }
+.tpl-center-headline { font-size: calc(clamp(0.9rem, 1.6vw, 2rem) * var(--tpl-scale)); font-weight: 900; }
 .tpl-center-sub { font-size: clamp(0.5rem, 0.75vw, 0.9rem); opacity: 0.8; }
 .tpl-center-qr { display: flex; width: clamp(28px, 2.2vw, 38px); aspect-ratio: 1; align-items: center; justify-content: center; background: rgba(255,255,255,0.18); border-radius: var(--tpl-radius); color: #fff; font-size: clamp(0.35rem, 0.45vw, 0.55rem); font-weight: 800; }
 .tpl-center-widget { margin-left: auto; font-size: clamp(0.55rem, 0.75vw, 0.9rem); font-weight: 700; opacity: 0.85; white-space: nowrap; }
@@ -67,7 +68,7 @@ body.player-idle #app::before, body.player-pairing #app::before { opacity: 1; }
 .tpl-hero-bg img, .tpl-hero-bg video, .tpl-hero-bg iframe { width: 100%; height: 100%; object-fit: var(--tpl-media-fit, cover); border: 0; }
 .tpl-hero-overlay { position: absolute; inset: 0; z-index: 1; display: flex; flex-direction: column; justify-content: flex-end; padding: 5vh 4vw 3vh; background: linear-gradient(0deg, rgba(0,0,0,0.82) 30%, transparent); color: #fff; }
 .tpl-hero-badge { font-size: clamp(0.65rem, 1.1vw, 1.3rem); font-weight: 700; color: color-mix(in srgb, var(--tpl-primary) 70%, #fff); }
-.tpl-hero-headline { margin-top: 0.5vh; font-size: clamp(1.4rem, 3.2vw, 4rem); font-weight: 950; line-height: 0.96; }
+.tpl-hero-headline { margin-top: 0.5vh; font-size: calc(clamp(1.4rem, 3.2vw, 4rem) * var(--tpl-scale)); font-weight: 900; line-height: 0.96; }
 .tpl-hero-subrow { display: flex; align-items: center; gap: 1.2vw; margin-top: 1.5vh; }
 .tpl-hero-qr { display: flex; width: clamp(36px, 3vw, 48px); aspect-ratio: 1; align-items: center; justify-content: center; background: rgba(255,255,255,0.15); border-radius: var(--tpl-radius); color: #fff; font-size: clamp(0.35rem, 0.45vw, 0.6rem); font-weight: 800; }
 .tpl-hero-sub { font-size: clamp(0.65rem, 0.95vw, 1.2rem); color: rgba(255,255,255,0.85); }
@@ -76,11 +77,11 @@ body.player-idle #app::before, body.player-pairing #app::before { opacity: 1; }
 .tpl-hero-wicon { font-size: clamp(1.2rem, 2.2vw, 2.6rem); line-height: 1; margin-top: 0.3vh; }
 .tpl-hero-wtemp { font-size: clamp(0.9rem, 1.6vw, 2rem); font-weight: 950; margin-top: 0.3vh; }
 .slide.template-full_bleed img, .slide.template-full_bleed video, .slide.template-full_bleed iframe { width: 100%; height: 100%; object-fit: var(--tpl-media-fit, cover); border: 0; }
-.tpl-ticker { display: flex; min-height: 0; align-items: center; gap: 2vw; border: 2px solid var(--tpl-accent); background: var(--tpl-ticker-bg); padding: 0 3vw; color: var(--tpl-ticker-text); }
-.tpl-ticker-logo { color: var(--tpl-primary); font-size: clamp(1.4rem, 2.6vw, 3rem); font-weight: 950; line-height: 1; display: flex; align-items: center; }
+.tpl-ticker { display: flex; min-height: 0; align-items: center; gap: 2vw; border: 1px solid color-mix(in srgb, var(--tpl-accent) 76%, transparent); background: var(--tpl-ticker-bg); padding: 0 3vw; color: var(--tpl-ticker-text); }
+.tpl-ticker-logo { color: var(--tpl-primary); font-size: calc(clamp(1.4rem, 2.6vw, 3rem) * var(--tpl-scale)); font-weight: 900; line-height: 1; display: flex; align-items: center; }
 .tpl-ticker-logo img { max-height: clamp(1.6rem, 3vw, 3.2rem); width: auto; object-fit: contain; }
 .tpl-ticker-track { overflow: hidden; flex: 1; display: flex; min-width: 0; }
-.tpl-ticker-text { white-space: nowrap; flex-shrink: 0; font-size: clamp(0.8rem, 1.3vw, 1.6rem); font-weight: 850; }
+.tpl-ticker-text { white-space: nowrap; flex-shrink: 0; font-size: calc(clamp(0.8rem, 1.3vw, 1.6rem) * var(--tpl-scale)); font-weight: 800; }
 .tpl-ticker-text.marquee { animation: tpl-marquee var(--tpl-ticker-speed, 12s) linear infinite; }
 .tpl-ticker-text-clone { }
 @keyframes tpl-marquee {
@@ -194,6 +195,7 @@ if ('serviceWorker' in navigator) {
     WS_BASE = (location.protocol === 'https:' ? 'wss:' : 'ws:') + '//' + location.host;
   }
   var HEARTBEAT_INTERVAL = 30000;
+  var PROOF_QUEUE_KEY = 'signage_proof_queue';
   var screenId = null;
   var currentIndex = 0;
   var items = [];
@@ -202,6 +204,15 @@ if ('serviceWorker' in navigator) {
   var ws = null;
   var heartbeatTimer = null;
   var videoElement = null;
+  var reconnectAllowed = true;
+  var currentPlayback = {
+    playbackState: 'empty',
+    currentContentId: null,
+    currentContentTitle: null,
+    currentScheduleId: null,
+    currentPlaylistId: null,
+    playbackMessage: 'Esperando contenido'
+  };
   var currentPurpose = 'other';
   var currentTemplate = 'full_bleed';
   var currentTemplateText = { badge: '', headline: '', subtitle: '' };
@@ -235,7 +246,7 @@ if ('serviceWorker' in navigator) {
     healthcare: 'Healthcare',
     events: 'Events',
     public_information: 'Public Information',
-    other: 'Other',
+    other: 'Custom',
     office: 'Office Communications',
     public_info: 'Public Information',
     menu_board: 'Cafeteria & Restaurant',
@@ -338,6 +349,7 @@ if ('serviceWorker' in navigator) {
     .then(function (data) {
       if (data.error) throw new Error(data.error);
       screenId = data.id;
+      reconnectAllowed = true;
       localStorage.setItem('signage_screen_id', screenId);
       if (window.history && window.history.replaceState) {
         window.history.replaceState({}, document.title, '/player');
@@ -356,6 +368,70 @@ if ('serviceWorker' in navigator) {
   }
 
   var POLL_INTERVAL = 30000;
+
+  function setPlaybackState(state, item, message) {
+    currentPlayback = {
+      playbackState: state,
+      currentContentId: item && item.content ? item.content.id : null,
+      currentContentTitle: item && item.content ? item.content.title : null,
+      currentScheduleId: item && item.scheduleId ? item.scheduleId : null,
+      currentPlaylistId: item && item.playlistId ? item.playlistId : null,
+      playbackMessage: message || ''
+    };
+  }
+
+  function buildHeartbeatPayload() {
+    return {
+      screenId: screenId,
+      playbackState: currentPlayback.playbackState,
+      currentContentId: currentPlayback.currentContentId,
+      currentContentTitle: currentPlayback.currentContentTitle,
+      currentScheduleId: currentPlayback.currentScheduleId,
+      currentPlaylistId: currentPlayback.currentPlaylistId,
+      playbackMessage: currentPlayback.playbackMessage
+    };
+  }
+
+  function sendHeartbeat() {
+    if (!screenId) return;
+    fetch(API_BASE + '/screens/heartbeat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(buildHeartbeatPayload())
+    }).then(function () {
+      flushProofQueue();
+    }).catch(function () {});
+  }
+
+  function showPairingScreen(message) {
+    reconnectAllowed = false;
+    if (heartbeatTimer) clearInterval(heartbeatTimer);
+    if (pollTimer) clearInterval(pollTimer);
+    if (rotationTimer) clearTimeout(rotationTimer);
+    heartbeatTimer = null;
+    pollTimer = null;
+    rotationTimer = null;
+    videoElement = null;
+    items = [];
+    currentIndex = 0;
+    screenId = null;
+    localStorage.removeItem('signage_screen_id');
+    localStorage.removeItem(PROOF_QUEUE_KEY);
+    if (ws) {
+      try { ws.close(); } catch (e) {}
+      ws = null;
+    }
+    container.innerHTML = '';
+    pairInput.value = '';
+    pairBtn.disabled = false;
+    pairBtn.textContent = 'Vincular';
+    pairError.textContent = message || '';
+    pairScreen.classList.remove('hidden');
+    document.body.classList.add('player-pairing');
+    document.body.classList.remove('player-playing');
+    document.body.classList.remove('player-idle');
+    setStatus('offline', 'Desvinculado');
+  }
 
   // --- Player ---
   function startPlayer() {
@@ -377,6 +453,7 @@ if ('serviceWorker' in navigator) {
         return res.json();
       })
       .then(function (data) {
+        flushProofQueue();
         var count = data.items ? data.items.length : 0;
         setDebug('Items: ' + count + ' | ' + (data.message || ''));
         if (data.screen) {
@@ -389,11 +466,23 @@ if ('serviceWorker' in navigator) {
         if (data.items && data.items.length > 0) {
           document.body.classList.remove('player-idle');
           document.body.classList.add('player-playing');
-          items = data.items;
+          items = data.items.map(function (entry) {
+            return {
+              id: entry.id,
+              position: entry.position,
+              duration: entry.duration,
+              content: entry.content,
+              scheduleId: data.schedule ? data.schedule.id : null,
+              playlistId: data.playlist ? data.playlist.id : null,
+              source: data.schedule ? 'schedule' : 'idle'
+            };
+          });
           currentIndex = 0;
           renderCurrent();
           startRotation();
         } else {
+          setPlaybackState('empty', null, data.message || 'Sin contenido asignado');
+          sendHeartbeat();
           showIdle();
         }
       })
@@ -402,9 +491,12 @@ if ('serviceWorker' in navigator) {
         var msg = (err.message || '');
         if (msg.indexOf('HTTP 404') !== -1) {
           localStorage.removeItem('signage_screen_id');
+          localStorage.removeItem(PROOF_QUEUE_KEY);
           location.reload();
           return;
         }
+        setPlaybackState('error', null, msg || 'No se pudo obtener contenido');
+        sendHeartbeat();
         showIdle();
       });
   }
@@ -413,6 +505,9 @@ if ('serviceWorker' in navigator) {
     if (!items.length) return;
     var item = items[currentIndex];
     if (!item || !item.content) return;
+    setPlaybackState(item.source === 'schedule' ? 'playing_schedule' : 'playing_idle', item, item.source === 'schedule' ? 'Reproduciendo programación' : 'Reproduciendo contenido idle');
+    sendHeartbeat();
+    logProofOfPlay(item);
     container.innerHTML = '';
     var div = document.createElement('div');
     div.className = 'slide active template-' + currentTemplate;
@@ -431,6 +526,7 @@ if ('serviceWorker' in navigator) {
         el.style.setProperty('--tpl-radius', RADIUS_MAP[style.cornerRadius] || style.cornerRadius);
       }
       if (style.mediaFit) el.style.setProperty('--tpl-media-fit', style.mediaFit);
+      if (style.fontSizeScale) el.style.setProperty('--tpl-scale', style.fontSizeScale);
       if (style.tickerSpeed) {
         var SPEED_MAP = { slow: '20s', normal: '12s', fast: '6s' };
         el.style.setProperty('--tpl-ticker-speed', SPEED_MAP[style.tickerSpeed] || '12s');
@@ -483,6 +579,8 @@ if ('serviceWorker' in navigator) {
           renderCurrent();
         });
         video.addEventListener('error', function () {
+          setPlaybackState('error', item, 'Video no disponible');
+          sendHeartbeat();
           container.innerHTML = '<div class="slide active" style="flex-direction:column;gap:8px;justify-content:center;align-items:center;">' +
             '<h2 style="font-size:1.5em;">' + escapeHtml(item.content.title) + '</h2>' +
             '<p style="opacity:0.5;">Video no disponible</p></div>';
@@ -517,6 +615,7 @@ if ('serviceWorker' in navigator) {
     if (mediaEl) {
       if (currentTemplate === 'full_bleed') {
         div.appendChild(mediaEl);
+        appendCustomCSS(div);
       } else {
         appendTemplateLayout(div, item, mediaEl);
       }
@@ -560,6 +659,78 @@ if ('serviceWorker' in navigator) {
       '</div></div>';
   }
 
+  function logProofOfPlay(item) {
+    if (!screenId || !item || !item.content || !item.content.id) return;
+    var payload = {
+      screenId: screenId,
+      contentItemId: item.content.id,
+      playlistId: item.playlistId,
+      scheduleId: item.scheduleId,
+      duration: item.duration || 10
+    };
+    sendProofOfPlay(payload).catch(function () {
+      queueProofOfPlay(payload);
+    });
+  }
+
+  function sendProofOfPlay(payload) {
+    return fetch(API_BASE + '/proof-of-play/log', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).then(function (res) {
+      if (!res.ok) throw new Error('proof failed');
+      return res;
+    });
+  }
+
+  function getProofQueue() {
+    try {
+      var raw = localStorage.getItem(PROOF_QUEUE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveProofQueue(queue) {
+    localStorage.setItem(PROOF_QUEUE_KEY, JSON.stringify(queue.slice(-100)));
+  }
+
+  function queueProofOfPlay(payload) {
+    var queue = getProofQueue();
+    queue.push(payload);
+    saveProofQueue(queue);
+  }
+
+  function flushProofQueue() {
+    if (!screenId) return;
+    var queue = getProofQueue();
+    if (!queue.length) return;
+    var remaining = queue.slice();
+    var sendNext = function () {
+      if (!remaining.length) {
+        saveProofQueue([]);
+        return;
+      }
+      var payload = remaining[0];
+      if (payload.screenId !== screenId) {
+        remaining.shift();
+        saveProofQueue(remaining);
+        sendNext();
+        return;
+      }
+      sendProofOfPlay(payload).then(function () {
+        remaining.shift();
+        saveProofQueue(remaining);
+        sendNext();
+      }).catch(function () {
+        saveProofQueue(remaining);
+      });
+    };
+    sendNext();
+  }
+
   function escapeHtml(str) {
     if (!str) return '';
     return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -587,7 +758,6 @@ if ('serviceWorker' in navigator) {
     var showTicker = currentTemplateStyle.showTicker !== 'no';
     var qrSrc = currentTemplateStyle.qrUrl;
     var logoSrc = currentTemplateStyle.logoUrl;
-    var customCSS = currentTemplateStyle.customCSS;
 
     var qrHtml = qrSrc ? '<img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=' + encodeURIComponent(qrSrc) + '" alt="QR" style="display:block;max-width:100%;max-height:100%;">' : escapeHtml(v.qrText);
     var logoHtml = logoSrc ? '<img src="' + escapeHtml(logoSrc) + '" alt="Logo">' : escapeHtml(v.logoText);
@@ -649,11 +819,15 @@ if ('serviceWorker' in navigator) {
       div.appendChild(tk);
     }
 
-    if (customCSS) {
-      var st = document.createElement('style');
-      st.textContent = customCSS;
-      div.appendChild(st);
-    }
+    appendCustomCSS(div);
+  }
+
+  function appendCustomCSS(div) {
+    var customCSS = currentTemplateStyle.customCSS;
+    if (!customCSS) return;
+    var st = document.createElement('style');
+    st.textContent = customCSS;
+    div.appendChild(st);
   }
 
   // --- WebSocket ---
@@ -675,25 +849,31 @@ if ('serviceWorker' in navigator) {
           fetchPlaylist();
         }
         if (msg.type === 'screen_deleted') {
-          localStorage.removeItem('signage_screen_id');
-          location.reload();
+          showPairingScreen('Esta pantalla fue eliminada. Genera un nuevo código para vincularla otra vez.');
         }
         if (msg.type === 'hard_reset') {
+          var reloadAfterCleanup = function () { location.reload(); };
           if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(function (regs) {
-              for (var i = 0; i < regs.length; i++) { regs[i].unregister(); }
-            });
-            caches.keys().then(function (names) {
-              for (var i = 0; i < names.length; i++) { caches.delete(names[i]); }
-            });
+            var cleanupTasks = [
+              navigator.serviceWorker.getRegistrations().then(function (regs) {
+                for (var i = 0; i < regs.length; i++) { regs[i].unregister(); }
+              })
+            ];
+            if ('caches' in window) {
+              cleanupTasks.push(caches.keys().then(function (names) {
+                for (var i = 0; i < names.length; i++) { caches.delete(names[i]); }
+              }));
+            }
+            Promise.all(cleanupTasks).then(reloadAfterCleanup).catch(reloadAfterCleanup);
+          } else {
+            reloadAfterCleanup();
           }
-          location.reload();
         }
       } catch (e) {}
     };
     ws.onclose = function () {
       setStatus('offline', 'Desconectado');
-      setTimeout(connectWebSocket, 5000);
+      if (reconnectAllowed && screenId) setTimeout(connectWebSocket, 5000);
     };
     ws.onerror = function () {
       ws.close();
@@ -703,18 +883,8 @@ if ('serviceWorker' in navigator) {
   // --- Heartbeat ---
   function startHeartbeat() {
     if (heartbeatTimer) clearInterval(heartbeatTimer);
-    fetch(API_BASE + '/screens/heartbeat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ screenId: screenId })
-    }).catch(function () {});
-    heartbeatTimer = setInterval(function () {
-      fetch(API_BASE + '/screens/heartbeat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ screenId: screenId })
-      }).catch(function () {});
-    }, HEARTBEAT_INTERVAL);
+    sendHeartbeat();
+    heartbeatTimer = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL);
   }
 
   // --- Auto-update ---
@@ -770,6 +940,7 @@ if ('serviceWorker' in navigator) {
     var storedId = localStorage.getItem('signage_screen_id');
     if (storedId) {
     screenId = storedId;
+    reconnectAllowed = true;
     pairScreen.classList.add('hidden');
     document.body.classList.remove('player-pairing');
     screenNameEl.textContent = 'Pantalla';
