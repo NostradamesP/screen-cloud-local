@@ -44,7 +44,7 @@ async function resolveActiveSchedule(screenId: string) {
   return matchedSchedule;
 }
 
-const PLAYER_VERSION = "1.6.0";
+const PLAYER_VERSION = "1.7.0";
 
 function templateForPurpose(purpose?: string | null) {
   switch (purpose) {
