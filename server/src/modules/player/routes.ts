@@ -44,7 +44,7 @@ async function resolveActiveSchedule(screenId: string) {
   return matchedSchedule;
 }
 
-const PLAYER_VERSION = "1.5.2";
+const PLAYER_VERSION = "1.6.0";
 
 function templateForPurpose(purpose?: string | null) {
   switch (purpose) {
@@ -67,6 +67,8 @@ function templateForPurpose(purpose?: string | null) {
       return "media_right";
     case "events":
       return "hero_overlay";
+    case "other":
+      return "media_left";
     default:
       return "full_bleed";
   }
@@ -244,6 +246,8 @@ export async function playerRoutes(fastify: FastifyInstance) {
       const isOnline = screen.lastHeartbeat
         ? (Date.now() - new Date(screen.lastHeartbeat).getTime()) < 60000
         : false;
+      const connectionStatus = isOnline ? "online" : "offline";
+      const playbackState = isOnline ? (screen.playbackState || "empty") : "offline";
       let idleContent = null;
       if (screen.idleContentId) {
         const [content] = await db.select().from(contentItems).where(eq(contentItems.id, screen.idleContentId));
@@ -256,7 +260,15 @@ export async function playerRoutes(fastify: FastifyInstance) {
         screenName: screen.name,
         location: screen.location,
         purpose: screen.purpose,
-        status: isOnline ? "online" : "offline",
+        status: connectionStatus,
+        connectionStatus,
+        playbackState,
+        playbackMessage: isOnline ? screen.playbackMessage : "Sin conexión reciente.",
+        playbackUpdatedAt: screen.playbackUpdatedAt,
+        currentContent: screen.currentContentId || screen.currentContentTitle ? {
+          id: screen.currentContentId,
+          title: screen.currentContentTitle,
+        } : null,
         activeSchedule: schedule ? {
           id: schedule.id,
           name: schedule.name,

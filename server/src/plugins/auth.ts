@@ -1,6 +1,7 @@
 import fp from "fastify-plugin";
 import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import fjwt from "@fastify/jwt";
+import { config } from "../config";
 
 declare module "fastify" {
   interface FastifyInstance {
@@ -25,9 +26,9 @@ declare module "@fastify/jwt" {
 
 export default fp(async function authPlugin(fastify: FastifyInstance) {
   await fastify.register(fjwt, {
-    secret: process.env.JWT_SECRET ?? "dev-secret-change-me",
+    secret: config.jwt.secret,
     sign: {
-      expiresIn: process.env.JWT_EXPIRES_IN ?? "7d",
+      expiresIn: config.jwt.expiresIn,
     },
   });
 

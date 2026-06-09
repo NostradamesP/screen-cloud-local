@@ -16,8 +16,10 @@ import {
   Info,
   Monitor,
   Pencil,
+  Play,
   Plus,
   Presentation,
+  Pause,
   RefreshCw,
   Rss,
   ShoppingBag,
@@ -72,7 +74,7 @@ const PURPOSE_LABELS: Record<string, string> = {
   healthcare: "Healthcare",
   events: "Events",
   public_information: "Public Information",
-  other: "Other",
+  other: "Custom",
   office: "Oficina",
   public_info: "Información Pública",
   menu_board: "Menú Digital",
@@ -91,14 +93,14 @@ const LEGACY_PURPOSE_MAP: Record<string, string> = {
 };
 
 const PURPOSE_OPTIONS = [
-  { key: "manufacturing_logistics", description: "KPIs, safety, dispatch and operations." },
-  { key: "office_communications", description: "Announcements, culture and internal comms." },
-  { key: "cafeteria_restaurant", description: "Menus, specials and availability." },
-  { key: "retail_promotions", description: "Offers, launches and visual promos." },
-  { key: "healthcare", description: "Waiting rooms, wayfinding and safety notices." },
-  { key: "events", description: "Schedules, welcome screens and live updates." },
-  { key: "public_information", description: "Wayfinding, alerts and public notices." },
-  { key: "other", description: "Flexible layout for custom use." },
+  { key: "manufacturing_logistics", description: "KPIs, seguridad, despacho y operaciones." },
+  { key: "office_communications", description: "Anuncios, cultura y comunicación interna." },
+  { key: "cafeteria_restaurant", description: "Menús, especiales y disponibilidad." },
+  { key: "retail_promotions", description: "Ofertas, lanzamientos y promos visuales." },
+  { key: "healthcare", description: "Salas de espera, rutas y avisos de seguridad." },
+  { key: "events", description: "Agendas, bienvenida y actualizaciones en vivo." },
+  { key: "public_information", description: "Direcciones, alertas e información pública." },
+  { key: "other", description: "Diseño libre con texto, colores, QR, ticker y CSS." },
 ];
 
 const VIDEO_TEMPLATES = [
@@ -163,7 +165,7 @@ const emptyForm: ScreenForm = {
   resolution: "1920x1080",
   orientation: "landscape",
   purpose: "other",
-  template: "full_bleed",
+  template: "media_left",
   templateHeadline: "",
   templateSubtitle: "",
   templateBadge: "",
@@ -210,6 +212,7 @@ export default function Screens() {
   const [deleteTarget, setDeleteTarget] = useState<any>(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [showTemplateEditor, setShowTemplateEditor] = useState(false);
   const [toast, setToast] = useState<Toast>(null);
 
   const load = async () => {
@@ -221,12 +224,20 @@ export default function Screens() {
     setContentItems(content);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    const interval = window.setInterval(load, 30000);
+    return () => window.clearInterval(interval);
+  }, []);
 
   const selectedScreen = useMemo(
     () => screens.find((screen) => screen.id === selectedScreenId) ?? null,
     [screens, selectedScreenId]
   );
+
+  const updateFormField = <K extends keyof ScreenForm>(field: K, value: ScreenForm[K]) => {
+    setForm((current) => ({ ...current, [field]: value }));
+  };
 
   const screenStats = useMemo(() => {
     const online = screens.filter((screen) => isOnline(screen)).length;
@@ -247,6 +258,54 @@ export default function Screens() {
     if (!screen.lastHeartbeat) return false;
     const diff = Date.now() - new Date(screen.lastHeartbeat).getTime();
     return diff < 60000;
+  }
+
+  function getPlaybackInfo(screen: any) {
+    if (!isOnline(screen)) {
+      return {
+        label: "Offline",
+        detail: "Sin conexión reciente",
+        className: "border-gray-200 bg-gray-50 text-gray-600",
+        icon: WifiOff,
+      };
+    }
+    switch (screen.playbackState) {
+      case "playing_schedule":
+        return {
+          label: "Reproduciendo programación",
+          detail: screen.currentContentTitle || "Contenido programado activo",
+          className: "border-brand-200 bg-brand-50 text-brand-700",
+          icon: Play,
+        };
+      case "playing_idle":
+        return {
+          label: "Reproduciendo contenido idle",
+          detail: screen.currentContentTitle || "Contenido idle activo",
+          className: "border-amber-200 bg-amber-50 text-amber-700",
+          icon: Pause,
+        };
+      case "error":
+        return {
+          label: "Error de reproducción",
+          detail: screen.playbackMessage || "El player reportó un problema",
+          className: "border-red-200 bg-red-50 text-red-700",
+          icon: AlertTriangle,
+        };
+      case "empty":
+        return {
+          label: "Sin contenido asignado",
+          detail: screen.playbackMessage || "No hay nada reproduciéndose",
+          className: "border-gray-200 bg-gray-50 text-gray-600",
+          icon: Monitor,
+        };
+      default:
+        return {
+          label: "Esperando estado",
+          detail: screen.playbackMessage || "El player todavía no reporta reproducción",
+          className: "border-gray-200 bg-gray-50 text-gray-600",
+          icon: Monitor,
+        };
+    }
   }
 
   const getAssignedContent = (screen: any) =>
@@ -334,6 +393,7 @@ export default function Screens() {
         showToast({ type: "success", message: "Pantalla creada." });
       }
       setShowForm(false);
+      setShowTemplateEditor(false);
       setEditing(null);
       setForm(emptyForm);
       load();
@@ -345,6 +405,7 @@ export default function Screens() {
   const openCreate = () => {
     setEditing(null);
     setForm(emptyForm);
+    setShowTemplateEditor(false);
     setShowForm(true);
   };
 
@@ -491,7 +552,7 @@ export default function Screens() {
               {assigned ? assigned.title : "Sin contenido asignado"}
             </p>
             <p className={`text-xs ${assigned ? "text-amber-700" : "text-gray-500"}`}>
-              {assigned ? `${CONTENT_LABELS[assigned.type] || assigned.type} idle` : compact ? "Asignar contenido" : "Asignar contenido idle"}
+              {assigned ? `${CONTENT_LABELS[assigned.type] || assigned.type} para modo sin programación` : compact ? "Asignar contenido" : "Asignar contenido sin programación"}
             </p>
           </div>
           <span className="text-xs font-medium text-brand-600">Cambiar</span>
@@ -511,7 +572,17 @@ export default function Screens() {
     none: "0px", subtle: "4px", rounded: "8px", pill: "9999px",
   };
 
-  const renderTemplatePreview = (template: string, purpose: string) => {
+  type TemplateTextField =
+    | "templateBadge"
+    | "templateHeadline"
+    | "templateSubtitle"
+    | "templateQrText"
+    | "templateWeatherLocation"
+    | "templateTemperature"
+    | "templateTicker"
+    | "templateLogoText";
+
+  const renderTemplatePreview = (template: string, purpose: string, size: "compact" | "large" = "compact") => {
     const purposeLabel = PURPOSE_LABELS[normalizePurpose(purpose)] || "Template";
     const badge = form.templateBadge.trim() || purposeLabel;
     const headline = form.templateHeadline.trim() || "Título, avisos o datos";
@@ -522,9 +593,9 @@ export default function Screens() {
     const ticker = form.templateTicker.trim() || "News ticker message goes here and can be edited for this screen";
     const logoText = form.templateLogoText.trim() || "▲";
 
-    const pc = form.templatePrimaryColor || "#3b82f6";
-    const bg = form.templateBgColor || "#ffffff";
-    const txt = form.templateTextColor || "#111827";
+    const pc = form.templatePrimaryColor || "#2f9f6f";
+    const bg = form.templateBgColor || "#f8faf9";
+    const txt = form.templateTextColor || "#14302b";
     const accent = form.templateAccentColor || "#244244";
     const tkBg = form.templateTickerBg || "#ffffff";
     const tkTxt = form.templateTickerText || "#0f172a";
@@ -545,12 +616,62 @@ export default function Screens() {
     const qrDisplay = form.templateQrUrl ? "🔗" : qrText;
     const logoDisplay = form.templateLogoUrl ? "🖼" : logoText;
     const tickerStyle: React.CSSProperties = { background: tkBg, color: tkTxt, fontFamily: ff };
+    const previewFrame = size === "large"
+      ? "overflow-hidden rounded-lg border border-gray-200 bg-white p-3 shadow-sm"
+      : "overflow-hidden rounded-lg border border-gray-200 bg-white p-2 shadow-sm";
+    const previewCanvas = "relative aspect-video overflow-hidden rounded-md border border-white/70";
+    const mediaClass = "bg-gradient-to-br from-slate-100 via-slate-200 to-slate-400";
+    const inputBase = "w-full resize-none border-0 bg-transparent p-0 outline-none ring-0 placeholder:text-inherit placeholder:opacity-70 focus:ring-0";
+    const updatePreviewText = (field: TemplateTextField, value: string) => updateFormField(field, value);
+    const stopEnterSubmit = (event: React.KeyboardEvent<HTMLInputElement>) => {
+      if (event.key === "Enter") event.preventDefault();
+    };
+    const previewInput = (
+      field: TemplateTextField,
+      fallback: string,
+      className: string,
+      style?: React.CSSProperties,
+      ariaLabel?: string,
+    ) => (
+      <input
+        aria-label={ariaLabel || fallback}
+        className={`${inputBase} ${className}`}
+        value={form[field]}
+        placeholder={fallback}
+        onChange={(event) => updatePreviewText(field, event.target.value)}
+        onKeyDown={stopEnterSubmit}
+        style={style}
+      />
+    );
+    const previewTextArea = (
+      field: TemplateTextField,
+      fallback: string,
+      className: string,
+      style?: React.CSSProperties,
+      ariaLabel?: string,
+    ) => (
+      <textarea
+        aria-label={ariaLabel || fallback}
+        className={`${inputBase} ${className}`}
+        value={form[field]}
+        placeholder={fallback}
+        onChange={(event) => updatePreviewText(field, event.target.value)}
+        rows={2}
+        style={style}
+      />
+    );
+    const previewShell = (children: React.ReactNode) => (
+      <div>
+        {children}
+        <p className="mt-2 text-xs text-gray-500">Haz clic sobre los textos del preview para editarlos.</p>
+      </div>
+    );
 
     if (template === "full_bleed") {
-      return (
-        <div className="overflow-hidden rounded-xl border border-gray-200 bg-slate-950 p-2 shadow-inner">
-          <div className="relative aspect-video overflow-hidden rounded-lg" style={{ background: slideBg }}>
-            <div className="flex h-full items-center justify-center text-sm font-bold uppercase tracking-wide text-white/85">Video / Imagen</div>
+      return previewShell(
+        <div className={previewFrame}>
+          <div className={previewCanvas} style={{ background: slideBg }}>
+            <div className="flex h-full items-center justify-center text-sm font-semibold text-slate-500">Video / Imagen</div>
           </div>
         </div>
       );
@@ -558,34 +679,38 @@ export default function Screens() {
 
     if (template === "media_left" || template === "media_right") {
       const mediaFirst = template === "media_left";
-      return (
-        <div className="overflow-hidden rounded-xl border border-gray-200 bg-slate-950 p-2 shadow-inner">
-          <div className="relative aspect-video overflow-hidden rounded-lg" style={{ background: slideBg }}>
+      return previewShell(
+        <div className={previewFrame}>
+          <div className={previewCanvas} style={{ background: slideBg }}>
             <div className="absolute inset-x-0 top-0 bottom-[17%] grid grid-cols-[34%_42%_24%]">
-              <div className={`${mediaFirst ? "order-1" : "order-2"} bg-gradient-to-br from-slate-300 via-brand-200 to-slate-600`}>
-                <div className="flex h-full items-center justify-center text-xs font-bold uppercase tracking-wide text-white/85">Video / Imagen</div>
+              <div className={`${mediaFirst ? "order-1" : "order-2"} ${mediaClass}`}>
+                <div className="flex h-full items-center justify-center text-[10px] font-semibold text-slate-600">Video / Imagen</div>
               </div>
-              <div className={`${mediaFirst ? "order-2" : "order-1"} relative p-4`} style={{ background: `linear-gradient(135deg, ${pc}33, ${pc}88)`, color: txt }}>
-                <p className="text-[10px] font-bold" style={{ color: txt }}>{badge}</p>
-                <p className="relative mt-1 text-lg font-black leading-none">{headline}</p>
+              <div className={`${mediaFirst ? "order-2" : "order-1"} relative p-4`} style={{ background: `linear-gradient(135deg, ${pc}18, ${pc}45)`, color: txt }}>
+                {previewInput("templateBadge", badge, "text-[9px] font-semibold", { color: txt }, "Etiqueta del template")}
+                {previewTextArea("templateHeadline", headline, "relative mt-1 h-11 text-lg font-extrabold leading-none", { color: txt }, "Título del template")}
                 <div className="relative mt-3 flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center text-[9px] font-black" style={{ background: bg, color: accent, borderRadius: cr }}>{qrDisplay}</div>
-                  <p className="text-[10px] leading-tight" style={{ color: txt }}>{subtitle}</p>
+                  <div className="flex h-12 w-12 items-center justify-center border border-black/5 shadow-sm" style={{ background: bg, color: accent, borderRadius: cr }}>
+                    {previewInput("templateQrText", qrDisplay, "px-1 text-center text-[9px] font-bold", { color: accent }, "Texto del QR")}
+                  </div>
+                  {previewTextArea("templateSubtitle", subtitle, "h-12 text-[10px] leading-tight", { color: txt }, "Subtítulo del template")}
                 </div>
               </div>
               {showWeather && (
               <div className="order-3 p-4" style={{ background: wBg, color: "#fff", fontFamily: ff }}>
-                <p className="text-sm font-black">{weatherLocation}</p>
-                <p className="mt-4 text-4xl">☁</p>
-                <p className="mt-2 text-2xl font-black">{temperature}</p>
+                {previewInput("templateWeatherLocation", weatherLocation, "text-sm font-extrabold text-white", undefined, "Ubicación del clima")}
+                <p className="mt-4 text-4xl leading-none">☁</p>
+                {previewInput("templateTemperature", temperature, "mt-2 text-2xl font-extrabold text-white", undefined, "Temperatura")}
                 <p className="text-[9px] text-white/75">Feels like 16°</p>
               </div>
               )}
             </div>
             {showTicker && (
             <div className="absolute inset-x-0 bottom-0 h-[17%] flex items-center gap-3 px-4" style={tickerStyle}>
-              <div className="text-2xl font-black" style={{ color: pc }}>{logoDisplay}</div>
-              <div className="truncate text-xs font-bold">{ticker}</div>
+              <div className="w-8 text-2xl font-extrabold" style={{ color: pc }}>
+                {previewInput("templateLogoText", logoDisplay, "text-2xl font-extrabold", { color: pc }, "Marca inferior")}
+              </div>
+              {previewInput("templateTicker", ticker, "truncate text-xs font-semibold", undefined, "Ticker inferior")}
             </div>
             )}
           </div>
@@ -594,25 +719,25 @@ export default function Screens() {
     }
 
     if (template === "center_stage") {
-      return (
-        <div className="overflow-hidden rounded-xl border border-gray-200 bg-slate-950 p-2 shadow-inner">
-          <div className="relative aspect-video overflow-hidden rounded-lg bg-black">
+      return previewShell(
+        <div className={previewFrame}>
+          <div className={`${previewCanvas} bg-black`}>
             <div className="absolute inset-x-0 top-0 bottom-[20%]" style={{ background: slideBg }}>
-              <div className="flex h-full items-center justify-center text-xs font-bold uppercase tracking-wide text-white/85">Video / Imagen</div>
+              <div className="flex h-full items-center justify-center text-xs font-semibold text-slate-500">Video / Imagen</div>
             </div>
-            <div className="absolute inset-x-0 bottom-[6%] flex items-center gap-2 px-3 py-2 text-white" style={{ background: `${pc}88` }}>
-              <span className="text-[7px] font-bold opacity-90">{badge}</span>
-              <span className="text-[10px] font-black">{headline}</span>
+            <div className="absolute inset-x-0 bottom-[6%] flex items-center gap-2 px-3 py-2 text-white" style={{ background: `${pc}cc` }}>
+              <div className="w-20">{previewInput("templateBadge", badge, "text-[7px] font-semibold text-white opacity-90", undefined, "Etiqueta del template")}</div>
+              <div className="min-w-0 flex-1">{previewInput("templateHeadline", headline, "truncate text-[10px] font-extrabold text-white", undefined, "Título del template")}</div>
               {showWeather && (
-              <span className="ml-auto flex items-center gap-1 text-[7px] opacity-75">
-                <span>☁</span> {temperature}
+              <span className="ml-auto flex w-14 items-center gap-1 text-[7px] opacity-75">
+                <span>☁</span> {previewInput("templateTemperature", temperature, "text-[7px] text-white", undefined, "Temperatura")}
               </span>
               )}
             </div>
             {showTicker && (
             <div className="absolute inset-x-0 bottom-0 h-[6%] flex items-center gap-2 px-3" style={tickerStyle}>
-              <span className="text-xs font-black" style={{ color: pc }}>{logoDisplay}</span>
-              <span className="truncate text-[7px] font-bold">{ticker}</span>
+              <span className="w-5 text-xs font-extrabold" style={{ color: pc }}>{previewInput("templateLogoText", logoDisplay, "text-xs font-extrabold", { color: pc }, "Marca inferior")}</span>
+              {previewInput("templateTicker", ticker, "truncate text-[7px] font-semibold", undefined, "Ticker inferior")}
             </div>
             )}
           </div>
@@ -620,28 +745,28 @@ export default function Screens() {
       );
     }
 
-    return (
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-slate-950 p-2 shadow-inner">
-        <div className="relative aspect-video overflow-hidden rounded-lg bg-black">
+    return previewShell(
+      <div className={previewFrame}>
+        <div className={`${previewCanvas} bg-black`}>
           <div className="absolute inset-0" style={{ background: slideBg }}>
-            <div className="flex h-full items-center justify-center text-xs font-bold uppercase tracking-wide text-white/85">Video / Imagen</div>
+            <div className="flex h-full items-center justify-center text-xs font-semibold text-slate-500">Video / Imagen</div>
           </div>
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-3 pb-2 pt-8 text-white">
-            <p className="text-[7px] font-bold" style={{ color: pc }}>{badge}</p>
-            <p className="text-xs font-black leading-tight">{headline}</p>
-            <p className="mt-0.5 text-[7px] text-white/70">{subtitle}</p>
+            {previewInput("templateBadge", badge, "text-[7px] font-semibold", { color: pc }, "Etiqueta del template")}
+            {previewInput("templateHeadline", headline, "text-xs font-extrabold leading-tight text-white", undefined, "Título del template")}
+            {previewInput("templateSubtitle", subtitle, "mt-0.5 text-[7px] text-white/70", undefined, "Subtítulo del template")}
           </div>
           {showWeather && (
           <div className="absolute right-1 top-1 flex flex-col items-center px-1.5 py-0.5 text-white" style={{ background: wBg, borderRadius: cr, fontFamily: ff }}>
-            <span className="text-[6px] font-bold">{weatherLocation}</span>
+            {previewInput("templateWeatherLocation", weatherLocation, "text-center text-[6px] font-bold text-white", undefined, "Ubicación del clima")}
             <span className="text-xs">☁</span>
-            <span className="text-[9px] font-black">{temperature}</span>
+            {previewInput("templateTemperature", temperature, "text-center text-[9px] font-extrabold text-white", undefined, "Temperatura")}
           </div>
           )}
           {showTicker && (
           <div className="absolute inset-x-0 bottom-0 h-[12%] flex items-center gap-2 px-3" style={tickerStyle}>
-            <span className="text-xs font-black" style={{ color: pc }}>{logoDisplay}</span>
-            <span className="truncate text-[7px] font-bold">{ticker}</span>
+            <span className="w-5 text-xs font-extrabold" style={{ color: pc }}>{previewInput("templateLogoText", logoDisplay, "text-xs font-extrabold", { color: pc }, "Marca inferior")}</span>
+            {previewInput("templateTicker", ticker, "truncate text-[7px] font-semibold", undefined, "Ticker inferior")}
           </div>
           )}
         </div>
@@ -737,7 +862,7 @@ export default function Screens() {
                 <h2 className="text-lg font-semibold text-gray-900">{editing ? "Editar pantalla" : "Nueva pantalla"}</h2>
                 <p className="text-sm text-gray-500">Define los datos básicos para identificarla en operación.</p>
               </div>
-              <button type="button" onClick={() => { setShowForm(false); setEditing(null); }} className="rounded-lg p-2 text-gray-400 hover:bg-gray-50 hover:text-gray-700">
+              <button type="button" onClick={() => { setShowForm(false); setShowTemplateEditor(false); setEditing(null); }} className="rounded-lg p-2 text-gray-400 hover:bg-gray-50 hover:text-gray-700">
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -767,51 +892,63 @@ export default function Screens() {
               </div>
               <div className="md:col-span-2">
                 <label className="label mb-2">Template por industria</label>
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
-                  {PURPOSE_OPTIONS.map(({ key, description }) => {
+                <div className="flex flex-wrap gap-2">
+                  {PURPOSE_OPTIONS.map(({ key }) => {
                     const Icon = PURPOSE_ICONS[key] || Monitor;
                     return (
                     <button
                       key={key}
                       type="button"
-                      onClick={() => setForm({ ...form, purpose: key })}
-                      className={`flex min-h-24 flex-col items-start justify-center gap-1 rounded-lg border p-3 text-left transition-colors ${
+                      onClick={() => setForm({
+                        ...form,
+                        purpose: key,
+                        template: key === "other" && form.template === "full_bleed" ? "media_left" : form.template,
+                      })}
+                      className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-sm font-medium transition-colors ${
                         form.purpose === key
-                          ? "border-brand-500 bg-brand-50 text-brand-700"
+                          ? "border-brand-500 bg-brand-50 text-brand-700 shadow-sm"
                           : "border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
                       }`}
                     >
-                      <Icon className={`h-5 w-5 ${form.purpose === key ? "text-brand-600" : "text-gray-400"}`} />
-                      <span className="text-sm font-semibold leading-tight">{PURPOSE_LABELS[key]}</span>
-                      <span className="text-xs leading-snug text-gray-500">{description}</span>
+                      <Icon className={`h-4 w-4 ${form.purpose === key ? "text-brand-600" : "text-gray-400"}`} />
+                      <span>{PURPOSE_LABELS[key]}</span>
                     </button>
                     );
                   })}
                 </div>
               </div>
               <div className="md:col-span-2">
-                <label className="label mb-2">Dónde poner el video o contenido</label>
-                <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                  <label className="label">Dónde poner el video o contenido</label>
+                  {normalizePurpose(form.purpose) === "other" && (
+                    <button type="button" onClick={() => setShowTemplateEditor(true)} className="btn-primary py-2 text-sm">
+                      <Pencil className="mr-2 h-4 w-4" />
+                      Abrir editor custom
+                    </button>
+                  )}
+                </div>
+                <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_520px]">
+                  <div className="flex flex-wrap content-start gap-2">
                     {VIDEO_TEMPLATES.map((template) => (
                       <button
                         key={template.key}
                         type="button"
                         onClick={() => setForm({ ...form, template: template.key })}
-                        className={`rounded-lg border p-3 text-left transition-colors ${
+                        className={`rounded-full border px-3 py-2 text-sm font-medium transition-colors ${
                           form.template === template.key
                             ? "border-brand-500 bg-brand-50 text-brand-700"
                             : "border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
                         }`}
                       >
-                        <span className="text-sm font-semibold">{template.label}</span>
-                        <span className="mt-1 block text-xs leading-snug text-gray-500">{template.description}</span>
+                        {template.label}
                       </button>
                     ))}
                   </div>
                   {renderTemplatePreview(form.template, form.purpose)}
                 </div>
               </div>
+              {normalizePurpose(form.purpose) !== "other" && (
+              <>
               <div className="md:col-span-2">
                 <label className="label mb-2">Texto del template</label>
                 <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -1155,10 +1292,12 @@ export default function Screens() {
                   <p className="mt-1 text-xs text-gray-400">Se inyecta dentro del slide en el player. Solo para usuarios avanzados.</p>
                 </div>
               </div>
+              </>
+              )}
             </div>
             <div className="flex gap-2">
               <button type="submit" className="btn-primary">{editing ? "Guardar cambios" : "Crear pantalla"}</button>
-              <button type="button" onClick={() => { setShowForm(false); setEditing(null); }} className="btn-secondary">Cancelar</button>
+              <button type="button" onClick={() => { setShowForm(false); setShowTemplateEditor(false); setEditing(null); }} className="btn-secondary">Cancelar</button>
             </div>
           </form>
         </div>
@@ -1171,6 +1310,8 @@ export default function Screens() {
             const normalizedPurpose = normalizePurpose(screen.purpose);
             const PurposeIcon = PURPOSE_ICONS[normalizedPurpose] || Monitor;
             const selected = selectedScreenId === screen.id;
+            const playback = getPlaybackInfo(screen);
+            const PlaybackIcon = playback.icon;
             return (
               <div
                 key={screen.id}
@@ -1195,6 +1336,14 @@ export default function Screens() {
                       {online ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
                       {online ? "Online" : "Offline"}
                     </span>
+                  </div>
+                </div>
+
+                <div className={`mb-4 flex items-center gap-2 rounded-lg border px-3 py-2 text-sm ${playback.className}`}>
+                  <PlaybackIcon className="h-4 w-4 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold">{playback.label}</p>
+                    <p className="truncate text-xs opacity-80">{playback.detail}</p>
                   </div>
                 </div>
 
@@ -1274,6 +1423,27 @@ export default function Screens() {
                 </span>
               </div>
 
+              {(() => {
+                const playback = getPlaybackInfo(selectedScreen);
+                const PlaybackIcon = playback.icon;
+                return (
+                  <div className={`rounded-lg border p-4 ${playback.className}`}>
+                    <div className="flex items-start gap-3">
+                      <PlaybackIcon className="mt-0.5 h-5 w-5 shrink-0" />
+                      <div className="min-w-0">
+                        <p className="font-semibold">{playback.label}</p>
+                        <p className="mt-1 text-sm opacity-80">{playback.detail}</p>
+                        {selectedScreen.playbackUpdatedAt && (
+                          <p className="mt-2 text-xs opacity-70">
+                            Actualizado: {new Date(selectedScreen.playbackUpdatedAt).toLocaleString("es")}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div className="rounded-lg bg-gray-50 p-3">
                   <p className="text-xs text-gray-500">Resolución</p>
@@ -1306,6 +1476,12 @@ export default function Screens() {
                   )}
                 </div>
                 <div className="col-span-2 rounded-lg bg-gray-50 p-3">
+                  <p className="text-xs text-gray-500">Contenido actual</p>
+                  <p className="font-medium text-gray-900">
+                    {selectedScreen.currentContentTitle || "Sin contenido reproduciéndose"}
+                  </p>
+                </div>
+                <div className="col-span-2 rounded-lg bg-gray-50 p-3">
                   <p className="text-xs text-gray-500">Último heartbeat</p>
                   <p className="font-medium text-gray-900">
                     {selectedScreen.lastHeartbeat ? new Date(selectedScreen.lastHeartbeat).toLocaleString("es") : "Sin actividad registrada"}
@@ -1316,7 +1492,7 @@ export default function Screens() {
               <div>
                 <div className="mb-2 flex items-center justify-between">
                   <h3 className="text-sm font-semibold text-gray-900">Contenido idle</h3>
-                  <span className="text-xs text-gray-400">Se muestra sin programación activa</span>
+                  <span className="text-xs text-gray-400">Se reproduce sin programación activa</span>
                 </div>
                 {renderAssignedContent(selectedScreen)}
               </div>
@@ -1356,6 +1532,152 @@ export default function Screens() {
           )}
         </aside>
       </div>
+
+      {showTemplateEditor && normalizePurpose(form.purpose) === "other" && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4 animate-fade-in" onClick={() => setShowTemplateEditor(false)}>
+          <div className="flex max-h-[92vh] w-full max-w-6xl flex-col rounded-lg bg-white shadow-xl animate-scale-in" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between gap-4 border-b border-gray-100 p-5">
+              <div>
+                <p className="text-sm font-medium text-brand-700">Editor custom</p>
+                <h2 className="text-xl font-bold text-gray-900">Diseña el template de esta pantalla</h2>
+                <p className="mt-1 text-sm text-gray-500">Edita directamente el preview o usa los controles rápidos.</p>
+              </div>
+              <button type="button" onClick={() => setShowTemplateEditor(false)} className="rounded-lg p-2 text-gray-400 hover:bg-gray-50 hover:text-gray-700">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="grid min-h-0 flex-1 grid-cols-1 gap-5 overflow-y-auto p-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+              <div className="min-w-0">
+                {renderTemplatePreview(form.template, form.purpose, "large")}
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {VIDEO_TEMPLATES.map((template) => (
+                    <button
+                      key={template.key}
+                      type="button"
+                      onClick={() => updateFormField("template", template.key)}
+                      className={`rounded-full border px-3 py-2 text-sm font-medium transition-colors ${
+                        form.template === template.key
+                          ? "border-brand-500 bg-brand-50 text-brand-700"
+                          : "border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+                      }`}
+                    >
+                      {template.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                  <h3 className="text-sm font-semibold text-gray-900">Texto</h3>
+                  <div className="mt-3 space-y-3">
+                    <input className="input" value={form.templateBadge} onChange={(e) => updateFormField("templateBadge", e.target.value)} placeholder="Etiqueta superior" />
+                    <input className="input" value={form.templateHeadline} onChange={(e) => updateFormField("templateHeadline", e.target.value)} placeholder="Título principal" />
+                    <textarea className="input" rows={2} value={form.templateSubtitle} onChange={(e) => updateFormField("templateSubtitle", e.target.value)} placeholder="Texto secundario" />
+                    <input className="input" value={form.templateTicker} onChange={(e) => updateFormField("templateTicker", e.target.value)} placeholder="Ticker inferior" />
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                  <h3 className="text-sm font-semibold text-gray-900">Widgets</h3>
+                  <div className="mt-3 grid grid-cols-2 gap-3">
+                    <input className="input" value={form.templateQrText} onChange={(e) => updateFormField("templateQrText", e.target.value)} placeholder="QR" />
+                    <input className="input" value={form.templateLogoText} onChange={(e) => updateFormField("templateLogoText", e.target.value)} placeholder="Logo" />
+                    <input className="input" value={form.templateWeatherLocation} onChange={(e) => updateFormField("templateWeatherLocation", e.target.value)} placeholder="Ciudad" />
+                    <input className="input" value={form.templateTemperature} onChange={(e) => updateFormField("templateTemperature", e.target.value)} placeholder="16°C" />
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-3">
+                    <label className="flex items-center gap-2 text-sm text-gray-700">
+                      <input type="checkbox" className="rounded border-gray-300 text-brand-600" checked={form.templateShowWeather !== "no"} onChange={(e) => updateFormField("templateShowWeather", e.target.checked ? "yes" : "no")} />
+                      Clima
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-gray-700">
+                      <input type="checkbox" className="rounded border-gray-300 text-brand-600" checked={form.templateShowTicker !== "no"} onChange={(e) => updateFormField("templateShowTicker", e.target.checked ? "yes" : "no")} />
+                      Ticker
+                    </label>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                  <h3 className="text-sm font-semibold text-gray-900">Color</h3>
+                  <div className="mt-3 grid grid-cols-2 gap-3">
+                    {[
+                      ["templatePrimaryColor", "Principal", "#2f9f6f"],
+                      ["templateBgColor", "Fondo", "#f8faf9"],
+                      ["templateTextColor", "Texto", "#14302b"],
+                      ["templateWidgetBg", "Widget", "#2f9f6f"],
+                      ["templateTickerBg", "Ticker fondo", "#ffffff"],
+                      ["templateTickerText", "Ticker texto", "#0f172a"],
+                    ].map(([field, label, fallback]) => (
+                      <label key={field} className="text-xs font-medium text-gray-500">
+                        {label}
+                        <div className="mt-1 flex items-center gap-2">
+                          <input
+                            type="color"
+                            className="h-9 w-9 cursor-pointer rounded border border-gray-300"
+                            value={(form[field as keyof ScreenForm] as string) || fallback}
+                            onChange={(e) => updateFormField(field as keyof ScreenForm, e.target.value as any)}
+                          />
+                          <input
+                            className="input min-w-0 flex-1"
+                            value={(form[field as keyof ScreenForm] as string) || ""}
+                            onChange={(e) => updateFormField(field as keyof ScreenForm, e.target.value as any)}
+                            placeholder={fallback}
+                          />
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                  <h3 className="text-sm font-semibold text-gray-900">Ajustes</h3>
+                  <div className="mt-3 grid grid-cols-2 gap-3">
+                    <select className="input" value={form.templateMediaFit} onChange={(e) => updateFormField("templateMediaFit", e.target.value)}>
+                      <option value="cover">Cubrir media</option>
+                      <option value="contain">Contener media</option>
+                      <option value="fill">Rellenar media</option>
+                    </select>
+                    <select className="input" value={form.templateTickerSpeed} onChange={(e) => updateFormField("templateTickerSpeed", e.target.value)}>
+                      <option value="slow">Ticker lento</option>
+                      <option value="normal">Ticker normal</option>
+                      <option value="fast">Ticker rápido</option>
+                    </select>
+                    <select className="input" value={form.templateFontFamily} onChange={(e) => updateFormField("templateFontFamily", e.target.value)}>
+                      <option value="system">Fuente sistema</option>
+                      <option value="sans">Sans moderna</option>
+                      <option value="serif">Serif</option>
+                      <option value="mono">Mono</option>
+                      <option value="display">Display</option>
+                    </select>
+                    <select className="input" value={form.templateCornerRadius} onChange={(e) => updateFormField("templateCornerRadius", e.target.value)}>
+                      <option value="none">Sin esquinas</option>
+                      <option value="subtle">Sutil</option>
+                      <option value="rounded">Redondeado</option>
+                      <option value="pill">Píldora</option>
+                    </select>
+                    <input className="input" value={form.templateQrUrl} onChange={(e) => updateFormField("templateQrUrl", e.target.value)} placeholder="URL para QR" />
+                    <input className="input" value={form.templateLogoUrl} onChange={(e) => updateFormField("templateLogoUrl", e.target.value)} placeholder="URL logo" />
+                  </div>
+                  <textarea
+                    className="input mt-3 font-mono text-xs"
+                    rows={3}
+                    value={form.templateCustomCSS}
+                    onChange={(e) => updateFormField("templateCustomCSS", e.target.value)}
+                    placeholder=".tpl-headline { text-transform: uppercase; }"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2">
+                  <button type="button" className="btn-secondary" onClick={() => setShowTemplateEditor(false)}>Cerrar</button>
+                  <button type="button" className="btn-primary" onClick={() => setShowTemplateEditor(false)}>Listo</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {pickingContent && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-fade-in" onClick={() => setPickingContent(null)}>

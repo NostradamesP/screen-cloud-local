@@ -20,6 +20,12 @@ const createScreenSchema = z.object({
 
 const heartbeatSchema = z.object({
   screenId: z.string(),
+  playbackState: z.enum(["offline", "empty", "playing_idle", "playing_schedule", "error"]).optional(),
+  currentContentId: z.string().uuid().nullable().optional(),
+  currentContentTitle: z.string().max(255).nullable().optional(),
+  currentScheduleId: z.string().uuid().nullable().optional(),
+  currentPlaylistId: z.string().uuid().nullable().optional(),
+  playbackMessage: z.string().max(500).nullable().optional(),
 });
 
 const pairSchema = z.object({
@@ -81,6 +87,7 @@ export async function screenRoutes(fastify: FastifyInstance) {
       settings: normalizeSettings(body.settings),
       pairCode,
       status: "offline",
+      playbackState: "offline",
     }).returning();
     return reply.status(201).send(screen);
   });
@@ -150,11 +157,11 @@ export async function screenRoutes(fastify: FastifyInstance) {
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { id } = request.params as { id: string };
     const { orgId } = request.user;
-    fastify.wsNotifier.notifyScreen(id, { type: "screen_deleted" });
     const [deleted] = await db.delete(screens)
       .where(and(eq(screens.id, id), eq(screens.organizationId, orgId)))
       .returning();
     if (!deleted) return reply.status(404).send({ error: "Screen not found" });
+    fastify.wsNotifier.notifyScreen(id, { type: "screen_deleted" });
     await cacheDel("player:*");
     return reply.status(204).send();
   });
@@ -170,6 +177,9 @@ export async function screenRoutes(fastify: FastifyInstance) {
         name: body.name ? `${screen.name} (${body.name})` : screen.name,
         status: "online",
         lastHeartbeat: new Date(),
+        playbackState: "empty",
+        playbackMessage: "Pantalla vinculada. Esperando contenido.",
+        playbackUpdatedAt: new Date(),
         pairCode: null,
       })
       .where(eq(screens.id, screen.id))
@@ -179,8 +189,21 @@ export async function screenRoutes(fastify: FastifyInstance) {
 
   fastify.post("/api/screens/heartbeat", async (request: FastifyRequest, reply: FastifyReply) => {
     const body = heartbeatSchema.parse(request.body);
+    const hasPlayback = typeof body.playbackState === "string";
     const [updated] = await db.update(screens)
-      .set({ status: "online", lastHeartbeat: new Date() })
+      .set({
+        status: "online",
+        lastHeartbeat: new Date(),
+        ...(hasPlayback ? {
+          playbackState: body.playbackState,
+          currentContentId: body.currentContentId ?? null,
+          currentContentTitle: body.currentContentTitle ?? null,
+          currentScheduleId: body.currentScheduleId ?? null,
+          currentPlaylistId: body.currentPlaylistId ?? null,
+          playbackMessage: body.playbackMessage ?? null,
+          playbackUpdatedAt: new Date(),
+        } : {}),
+      })
       .where(eq(screens.id, body.screenId))
       .returning();
     if (!updated) return reply.status(404).send({ error: "Screen not found" });
@@ -197,6 +220,7 @@ export async function screenRoutes(fastify: FastifyInstance) {
       name: "Unnamed Screen",
       pairCode: code,
       status: "offline",
+      playbackState: "offline",
     }).returning();
     return { screenId: screen.id, pairCode: code };
   });

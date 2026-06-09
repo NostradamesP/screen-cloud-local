@@ -103,6 +103,10 @@ export async function playlistRoutes(fastify: FastifyInstance) {
       and(eq(playlists.id, id), eq(playlists.organizationId, orgId))
     );
     if (!playlist) return reply.status(404).send({ error: "Playlist not found" });
+    const [contentItem] = await db.select({ id: contentItems.id }).from(contentItems).where(
+      and(eq(contentItems.id, body.contentItemId), eq(contentItems.organizationId, orgId))
+    );
+    if (!contentItem) return reply.status(404).send({ error: "Content item not found" });
     const [item] = await db.insert(playlistItems).values({
       playlistId: id,
       contentItemId: body.contentItemId,
@@ -139,6 +143,10 @@ export async function playlistRoutes(fastify: FastifyInstance) {
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     const { orgId } = request.user;
     const { playlistId, itemId } = request.params as { playlistId: string; itemId: string };
+    const [playlist] = await db.select({ id: playlists.id }).from(playlists).where(
+      and(eq(playlists.id, playlistId), eq(playlists.organizationId, orgId))
+    );
+    if (!playlist) return reply.status(404).send({ error: "Playlist not found" });
     const [deleted] = await db.delete(playlistItems)
       .where(and(eq(playlistItems.id, itemId), eq(playlistItems.playlistId, playlistId)))
       .returning();

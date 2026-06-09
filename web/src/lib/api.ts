@@ -107,7 +107,7 @@ export const api = {
     clearCache: () => request<{ ok: boolean; message: string }>("/player/clear-cache", { method: "POST", body: "{}" }),
   },
   scheduler: {
-    now: () => request<{ screenId: string; screenName: string; location: string; purpose: string; status: string; activeSchedule: any; idleContent: { id: string; title: string; type: string } | null }[]>("/scheduler/now"),
+    now: () => request<{ screenId: string; screenName: string; location: string; purpose: string; status: string; connectionStatus: string; playbackState: string; playbackMessage?: string | null; playbackUpdatedAt?: string | null; currentContent: { id: string | null; title: string | null } | null; activeSchedule: any; idleContent: { id: string; title: string; type: string } | null }[]>("/scheduler/now"),
   },
   layouts: {
     list: () => request<any[]>("/layouts"),

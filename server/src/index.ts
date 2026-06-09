@@ -6,6 +6,8 @@ import multipart from "@fastify/multipart";
 import rateLimit from "@fastify/rate-limit";
 import swagger from "@fastify/swagger";
 import swaggerUI from "@fastify/swagger-ui";
+import { sql } from "drizzle-orm";
+import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
 import { config } from "./config";
@@ -15,7 +17,7 @@ import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
 import authPlugin from "./plugins/auth";
 import authorizationPlugin from "./plugins/authorization";
-import { cacheDel } from "./lib/cache";
+import { cacheDel, redis } from "./lib/cache";
 import { ensureUploadDir } from "./storage";
 import { authRoutes } from "./modules/auth/routes";
 import { contentRoutes } from "./modules/content/routes";
@@ -83,12 +85,46 @@ async function main() {
     return reply.sendFile("index.html", playerPath);
   });
 
-  fastify.get("/health", async () => ({
-    status: "ok",
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    memory: process.memoryUsage().rss,
-  }));
+  fastify.get("/health", async (request, reply) => {
+    const checks = {
+      api: true,
+      database: false,
+      redis: false,
+      uploads: false,
+    };
+
+    try {
+      await db.execute(sql`select 1`);
+      checks.database = true;
+    } catch (err) {
+      fastify.log.warn({ err }, "database health check failed");
+    }
+
+    try {
+      checks.redis = (await redis.ping()) === "PONG";
+    } catch (err) {
+      fastify.log.warn({ err }, "redis health check failed");
+    }
+
+    try {
+      await ensureUploadDir();
+      await fs.access(config.upload.dir);
+      checks.uploads = true;
+    } catch (err) {
+      fastify.log.warn({ err }, "uploads health check failed");
+    }
+
+    const healthy = checks.database && checks.redis && checks.uploads;
+    if (!healthy) reply.status(503);
+
+    return {
+      status: healthy ? "ok" : "degraded",
+      checks,
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      memory: process.memoryUsage().rss,
+    };
+  });
 
   const webPath = path.resolve(__dirname, "../../web/dist");
   try {

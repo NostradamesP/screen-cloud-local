@@ -1,21 +1,22 @@
 FROM node:20-alpine AS base
 
 FROM base AS deps
-WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci --only=production
+WORKDIR /app/server
+COPY server/package.json server/package-lock.json ./
+RUN npm ci --omit=dev
 
 FROM base AS build
-WORKDIR /app
-COPY package.json package-lock.json tsconfig.json ./
-COPY src ./src
+WORKDIR /app/server
+COPY server/package.json server/package-lock.json server/tsconfig.json ./
+COPY server/src ./src
 RUN npm ci && npm run build
 
 FROM base AS runner
-WORKDIR /app
+WORKDIR /app/server
 ENV NODE_ENV=production
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=build /app/dist ./dist
-COPY package.json ./
+COPY --from=deps /app/server/node_modules ./node_modules
+COPY --from=build /app/server/dist ./dist
+COPY server/package.json ./
+COPY player /app/player
 EXPOSE 3000
 CMD ["node", "dist/index.js"]

@@ -1,17 +1,31 @@
 import "dotenv/config";
 import path from "path";
 
+const nodeEnv = process.env.NODE_ENV ?? "development";
+const isProduction = nodeEnv === "production";
+
+function requiredEnv(name: string, fallback?: string): string {
+  const value = process.env[name] ?? fallback;
+  if (!value) {
+    throw new Error(`${name} is required`);
+  }
+  if (isProduction && (!value || value.includes("change-me") || value.includes("dev-secret"))) {
+    throw new Error(`${name} is required in production`);
+  }
+  return value;
+}
+
 export const config = {
   port: parseInt(process.env.PORT ?? "3000", 10),
   host: process.env.HOST ?? "0.0.0.0",
-  nodeEnv: process.env.NODE_ENV ?? "development",
+  nodeEnv,
 
   database: {
-    url: process.env.DATABASE_URL ?? "postgres://signage:signage@localhost:5432/signage",
+    url: requiredEnv("DATABASE_URL", "postgres://signage:signage@localhost:5432/signage"),
   },
 
   redis: {
-    url: process.env.REDIS_URL ?? "redis://localhost:6379",
+    url: requiredEnv("REDIS_URL", "redis://localhost:6379"),
   },
 
   upload: {
@@ -19,7 +33,7 @@ export const config = {
   },
 
   jwt: {
-    secret: process.env.JWT_SECRET ?? "dev-secret-change-me",
+    secret: requiredEnv("JWT_SECRET", "dev-secret-change-me"),
     expiresIn: process.env.JWT_EXPIRES_IN ?? "7d",
   },
 

@@ -34,6 +34,14 @@ export const screens = pgTable("screens", {
   purpose: varchar("purpose", { length: 30 }).default("other").notNull(),
   status: varchar("status", { length: 50 }).default("offline"),
   lastHeartbeat: timestamp("last_heartbeat"),
+  playbackState: varchar("playback_state", { length: 50 }).default("offline"),
+  currentContentId: uuid("current_content_id")
+    .references(() => contentItems.id, { onDelete: "set null" }),
+  currentContentTitle: varchar("current_content_title", { length: 255 }),
+  currentScheduleId: uuid("current_schedule_id"),
+  currentPlaylistId: uuid("current_playlist_id"),
+  playbackMessage: varchar("playback_message", { length: 500 }),
+  playbackUpdatedAt: timestamp("playback_updated_at"),
   pairCode: varchar("pair_code", { length: 10 }).unique(),
   idleContentId: uuid("idle_content_id")
     .references(() => contentItems.id, { onDelete: "set null" }),
