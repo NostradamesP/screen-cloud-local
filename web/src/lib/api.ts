@@ -4,6 +4,8 @@ function getToken(): string | null {
   return localStorage.getItem("token");
 }
 
+const AUTH_PATHS = ["/auth/login", "/auth/register"];
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getToken();
   const headers: Record<string, string> = {
@@ -13,7 +15,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
-  if (res.status === 401) {
+  if (res.status === 401 && !AUTH_PATHS.some((p) => path.startsWith(p))) {
     localStorage.removeItem("token");
     window.location.href = "/login";
     throw new Error("Unauthorized");
@@ -23,7 +25,9 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     const err = await res.json().catch(() => ({ error: "Request failed" }));
     throw new Error(err.error ?? "Request failed");
   }
-  return res.json();
+  const text = await res.text();
+  if (!text) return undefined as T;
+  return JSON.parse(text);
 }
 
 export const api = {
@@ -77,6 +81,11 @@ export const api = {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: formData,
       }).then(async (res) => {
+        if (res.status === 401) {
+          localStorage.removeItem("token");
+          window.location.href = "/login";
+          throw new Error("Unauthorized");
+        }
         if (!res.ok) {
           const err = await res.json().catch(() => ({ error: "Upload failed" }));
           throw new Error(err.error ?? "Upload failed");
@@ -144,6 +153,8 @@ export const api = {
     setContentTags: (contentId: string, tagIds: string[]) =>
       request<any>(`/content/${contentId}/tags`, { method: "POST", body: JSON.stringify({ tagIds }) }),
     getContentTags: (contentId: string) => request<string[]>(`/content/${contentId}/tags`),
+    getContentTagsBatch: (ids: string[]) =>
+      request<Record<string, string[]>>(`/content/tags/batch?ids=${ids.join(",")}`),
   },
   org: {
     members: () => request<any[]>("/org/members"),
@@ -151,11 +162,7 @@ export const api = {
       request<any>(`/org/members/${id}/role`, { method: "PUT", body: JSON.stringify({ role }) }),
     setContentStatus: (id: string, status: string) =>
       request<any>(`/content/${id}/status`, { method: "PUT", body: JSON.stringify({ status }) }),
-    exportContent: () => {
-      const token = getToken();
-      return fetch(`${API_BASE}/content/export`, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
-        .then(r => r.json());
-    },
+    exportContent: () => request<any[]>("/content/export"),
     importContent: (data: any[]) =>
       request<any>("/content/import", { method: "POST", body: JSON.stringify(data) }),
   },

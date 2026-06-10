@@ -14,10 +14,16 @@ export default function Playlists() {
   const [selectedPlaylistId, setSelectedPlaylistId] = useState<string | null>(null);
   const [addItemForm, setAddItemForm] = useState<{ contentItemId: string; position: number; durationOverride: string } | null>(null);
   const [contentItems, setContentItems] = useState<any[]>([]);
+  const [error, setError] = useState("");
 
   const load = async () => {
-    const data = await api.playlists.list().catch(() => []);
-    setPlaylists(data);
+    try {
+      const data = await api.playlists.list().catch(() => []);
+      setPlaylists(data);
+      setError("");
+    } catch (err: any) {
+      setError(err.message || "Error al cargar datos");
+    }
   };
 
   const loadContent = useCallback(async () => {
@@ -34,15 +40,20 @@ export default function Playlists() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editing) {
-      await api.playlists.update(editing.id, { name: formName });
-    } else {
-      await api.playlists.create({ name: formName });
+    try {
+      if (editing) {
+        await api.playlists.update(editing.id, { name: formName });
+      } else {
+        await api.playlists.create({ name: formName });
+      }
+      setShowForm(false);
+      setEditing(null);
+      setFormName("");
+      load();
+      setError("");
+    } catch (err: any) {
+      setError(err.message || "Error en la operación");
     }
-    setShowForm(false);
-    setEditing(null);
-    setFormName("");
-    load();
   };
 
   const handleEdit = (p: any) => {
@@ -58,16 +69,26 @@ export default function Playlists() {
       confirmLabel: "Eliminar",
     });
     if (!ok) return;
-    await api.playlists.delete(id);
-    load();
+    try {
+      await api.playlists.delete(id);
+      load();
+      setError("");
+    } catch (err: any) {
+      setError(err.message || "Error en la operación");
+    }
   };
 
   const toggleExpand = async (id: string) => {
-    if (!expanded[id]) {
-      const data = await api.playlists.get(id);
-      setPlaylists((prev) => prev.map((p) => (p.id === id ? data : p)));
+    try {
+      if (!expanded[id]) {
+        const data = await api.playlists.get(id);
+        setPlaylists((prev) => prev.map((p) => (p.id === id ? data : p)));
+      }
+      setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
+      setError("");
+    } catch (err: any) {
+      setError(err.message || "Error en la operación");
     }
-    setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
   const handleDragStart = (playlistId: string, index: number) => {
@@ -83,13 +104,18 @@ export default function Playlists() {
     if (!dragItem || dragItem.playlistId !== playlistId) return;
     const playlist = playlists.find((p) => p.id === playlistId);
     if (!playlist || !playlist.items) return;
-    const items = [...playlist.items].sort((a: any, b: any) => a.position - b.position);
-    const [moved] = items.splice(dragItem.index, 1);
-    items.splice(targetIndex, 0, moved);
-    const reordered = items.map((item: any, i: number) => ({ id: item.id, position: i }));
-    await api.playlists.reorderItems(playlistId, reordered);
-    setDragItem(null);
-    toggleExpand(playlistId);
+    try {
+      const items = [...playlist.items].sort((a: any, b: any) => a.position - b.position);
+      const [moved] = items.splice(dragItem.index, 1);
+      items.splice(targetIndex, 0, moved);
+      const reordered = items.map((item: any, i: number) => ({ id: item.id, position: i }));
+      await api.playlists.reorderItems(playlistId, reordered);
+      setDragItem(null);
+      toggleExpand(playlistId);
+      setError("");
+    } catch (err: any) {
+      setError(err.message || "Error en la operación");
+    }
   };
 
   const openAddItem = (playlistId: string, nextPosition: number) => {
@@ -99,15 +125,20 @@ export default function Playlists() {
 
   const addItem = async () => {
     if (!addItemForm || !selectedPlaylistId) return;
-    await api.playlists.addItem(selectedPlaylistId, {
-      contentItemId: addItemForm.contentItemId,
-      position: addItemForm.position,
-      durationOverride: addItemForm.durationOverride ? parseInt(addItemForm.durationOverride) : undefined,
-    });
-    setAddItemForm(null);
-    const refreshedId = selectedPlaylistId;
-    setSelectedPlaylistId(null);
-    refreshPlaylist(refreshedId);
+    try {
+      await api.playlists.addItem(selectedPlaylistId, {
+        contentItemId: addItemForm.contentItemId,
+        position: addItemForm.position,
+        durationOverride: addItemForm.durationOverride ? parseInt(addItemForm.durationOverride) : undefined,
+      });
+      setAddItemForm(null);
+      const refreshedId = selectedPlaylistId;
+      setSelectedPlaylistId(null);
+      refreshPlaylist(refreshedId);
+      setError("");
+    } catch (err: any) {
+      setError(err.message || "Error en la operación");
+    }
   };
 
   const deleteItem = async (playlistId: string, itemId: string) => {
@@ -117,8 +148,13 @@ export default function Playlists() {
       confirmLabel: "Quitar",
     });
     if (!ok) return;
-    await api.playlists.removeItem(playlistId, itemId);
-    toggleExpand(playlistId);
+    try {
+      await api.playlists.removeItem(playlistId, itemId);
+      toggleExpand(playlistId);
+      setError("");
+    } catch (err: any) {
+      setError(err.message || "Error en la operación");
+    }
   };
 
   const sortedItems = (items: any[]) => [...items].sort((a: any, b: any) => a.position - b.position);
@@ -131,6 +167,12 @@ export default function Playlists() {
           <Plus className="h-4 w-4 mr-2" /> Nueva
         </button>
       </div>
+
+      {error && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 animate-slide-down">
+          {error}
+        </div>
+      )}
 
       {showForm && (
         <div className="card mb-6">
@@ -159,8 +201,8 @@ export default function Playlists() {
                   {p.items && <span className="text-xs text-gray-400">({p.items.length} items)</span>}
                 </button>
                 <div className="flex gap-1">
-                  <button onClick={() => handleEdit(p)} className="p-1 text-gray-400 hover:text-gray-600"><Pencil className="h-4 w-4" /></button>
-                  <button onClick={() => handleDelete(p.id)} className="p-1 text-gray-400 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
+                  <button onClick={() => handleEdit(p)} className="p-1 text-gray-400 hover:text-gray-600" aria-label="Editar"><Pencil className="h-4 w-4" /></button>
+                  <button onClick={() => handleDelete(p.id)} className="p-1 text-gray-400 hover:text-red-600" aria-label="Eliminar"><Trash2 className="h-4 w-4" /></button>
                 </div>
               </div>
               {expanded[p.id] && (
@@ -182,7 +224,7 @@ export default function Playlists() {
                             {item.contentItem?.title ?? `Item ${item.id.substring(0, 8)}`}
                           </span>
                           <span className="text-xs text-gray-400">{item.durationOverride ?? item.contentItem?.duration ?? 10}s</span>
-                          <button onClick={() => deleteItem(p.id, item.id)} className="p-0.5 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100">
+                          <button onClick={() => deleteItem(p.id, item.id)} className="p-0.5 text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100" aria-label="Quitar item">
                             <Trash2 className="h-3.5 w-3.5" />
                           </button>
                         </div>

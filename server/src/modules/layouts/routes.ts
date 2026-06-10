@@ -2,7 +2,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { z } from "zod";
 import { db } from "../../db";
 import { contentItems, layouts, layoutZones, playlists } from "../../db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 
 const createLayoutSchema = z.object({
   name: z.string().min(1).max(255),
@@ -46,12 +46,22 @@ export async function layoutRoutes(fastify: FastifyInstance) {
   fastify.get("/api/layouts", async (request: FastifyRequest) => {
     const { orgId } = request.user;
     const all = await db.select().from(layouts).where(eq(layouts.organizationId, orgId)).orderBy(layouts.name);
-    const result = [];
-    for (const layout of all) {
-      const zones = await db.select().from(layoutZones).where(eq(layoutZones.layoutId, layout.id)).orderBy(layoutZones.name);
-      result.push({ ...layout, zones });
+
+    if (all.length === 0) return [];
+
+    const layoutIds = all.map(l => l.id);
+    const allZones = await db.select().from(layoutZones)
+      .where(inArray(layoutZones.layoutId, layoutIds))
+      .orderBy(layoutZones.name);
+
+    const zonesByLayout = new Map<string, typeof allZones>();
+    for (const zone of allZones) {
+      const list = zonesByLayout.get(zone.layoutId) ?? [];
+      list.push(zone);
+      zonesByLayout.set(zone.layoutId, list);
     }
-    return result;
+
+    return all.map(layout => ({ ...layout, zones: zonesByLayout.get(layout.id) ?? [] }));
   });
 
   fastify.get("/api/layouts/:id", async (request: FastifyRequest, reply: FastifyReply) => {

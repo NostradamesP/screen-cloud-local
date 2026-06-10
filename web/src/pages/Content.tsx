@@ -37,8 +37,13 @@ export default function Content() {
     setMediaItems(media);
     setTags(tagList);
     const ctags: Record<string, string[]> = {};
-    for (const item of data) {
-      try { ctags[item.id] = await api.tags.getContentTags(item.id); } catch { ctags[item.id] = []; }
+    if (data.length > 0) {
+      try {
+        const batch = await api.tags.getContentTagsBatch(data.map((d: any) => d.id));
+        Object.assign(ctags, batch);
+      } catch {
+        for (const item of data) ctags[item.id] = [];
+      }
     }
     setContentTags(ctags);
   };
@@ -287,13 +292,13 @@ export default function Content() {
               </div>
               <div className="flex gap-1">
                 {item.status !== "published" && (
-                  <button onClick={() => publish(item.id, "published")} className="p-1 text-green-500 hover:text-green-700" title="Publicar"><Send className="h-4 w-4" /></button>
+                  <button onClick={() => publish(item.id, "published")} className="p-1 text-green-500 hover:text-green-700" aria-label="Publicar"><Send className="h-4 w-4" /></button>
                 )}
                 {item.status === "draft" && (
-                  <button onClick={() => publish(item.id, "review")} className="p-1 text-orange-500 hover:text-orange-700" title="Enviar a revisión"><Eye className="h-4 w-4" /></button>
+                  <button onClick={() => publish(item.id, "review")} className="p-1 text-orange-500 hover:text-orange-700" aria-label="Enviar a revisión"><Eye className="h-4 w-4" /></button>
                 )}
-                <button onClick={() => handleEdit(item)} className="p-1 text-gray-400 hover:text-gray-600"><Pencil className="h-4 w-4" /></button>
-                <button onClick={() => handleDelete(item.id)} className="p-1 text-gray-400 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
+                <button onClick={() => handleEdit(item)} className="p-1 text-gray-400 hover:text-gray-600" aria-label="Editar"><Pencil className="h-4 w-4" /></button>
+                <button onClick={() => handleDelete(item.id)} className="p-1 text-gray-400 hover:text-red-600" aria-label="Eliminar"><Trash2 className="h-4 w-4" /></button>
               </div>
             </div>
             {item.url && (

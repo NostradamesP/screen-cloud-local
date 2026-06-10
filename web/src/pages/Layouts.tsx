@@ -11,24 +11,39 @@ export default function Layouts() {
   const [form, setForm] = useState({ name: "", resolution: "1920x1080", orientation: "landscape" });
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [zoneForm, setZoneForm] = useState<any>(null);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
 
   const load = async () => {
-    const data = await api.layouts.list();
-    setLayouts(data);
+    try {
+      setLoading(true);
+      const data = await api.layouts.list();
+      setLayouts(data);
+      setError("");
+    } catch (err: any) {
+      setError(err.message || "Error al cargar datos");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { load(); }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editing) {
-      await api.layouts.update(editing.id, form);
-    } else {
-      await api.layouts.create(form);
+    try {
+      if (editing) {
+        await api.layouts.update(editing.id, form);
+      } else {
+        await api.layouts.create(form);
+      }
+      setShowForm(false);
+      setEditing(null);
+      load();
+      setError("");
+    } catch (err: any) {
+      setError(err.message || "Error en la operación");
     }
-    setShowForm(false);
-    setEditing(null);
-    load();
   };
 
   const handleEdit = (l: any) => {
@@ -44,16 +59,26 @@ export default function Layouts() {
       confirmLabel: "Eliminar",
     });
     if (!ok) return;
-    await api.layouts.delete(id);
-    load();
+    try {
+      await api.layouts.delete(id);
+      load();
+      setError("");
+    } catch (err: any) {
+      setError(err.message || "Error en la operación");
+    }
   };
 
   const toggleExpand = async (id: string) => {
-    if (!expanded[id]) {
-      const data = await api.layouts.get(id);
-      setLayouts((prev) => prev.map((l) => (l.id === id ? data : l)));
+    try {
+      if (!expanded[id]) {
+        const data = await api.layouts.get(id);
+        setLayouts((prev) => prev.map((l) => (l.id === id ? data : l)));
+      }
+      setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
+      setError("");
+    } catch (err: any) {
+      setError(err.message || "Error en la operación");
     }
-    setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
   const openZoneForm = (layoutId: string, zone?: any) => {
@@ -62,20 +87,25 @@ export default function Layouts() {
 
   const saveZone = async () => {
     if (!zoneForm) return;
-    const payload = { ...zoneForm };
-    delete payload.layoutId;
-    delete payload.id;
-    delete payload.createdAt;
-    delete payload.updatedAt;
-    if (!payload.playlistId) payload.playlistId = undefined;
-    if (!payload.contentItemId) payload.contentItemId = undefined;
-    if (zoneForm.id) {
-      await api.layouts.updateZone(zoneForm.layoutId, zoneForm.id, payload);
-    } else {
-      await api.layouts.createZone(zoneForm.layoutId, payload);
+    try {
+      const payload = { ...zoneForm };
+      delete payload.layoutId;
+      delete payload.id;
+      delete payload.createdAt;
+      delete payload.updatedAt;
+      if (!payload.playlistId) payload.playlistId = undefined;
+      if (!payload.contentItemId) payload.contentItemId = undefined;
+      if (zoneForm.id) {
+        await api.layouts.updateZone(zoneForm.layoutId, zoneForm.id, payload);
+      } else {
+        await api.layouts.createZone(zoneForm.layoutId, payload);
+      }
+      setZoneForm(null);
+      toggleExpand(zoneForm.layoutId);
+      setError("");
+    } catch (err: any) {
+      setError(err.message || "Error en la operación");
     }
-    setZoneForm(null);
-    toggleExpand(zoneForm.layoutId);
   };
 
   const deleteZone = async (layoutId: string, zoneId: string) => {
@@ -85,8 +115,13 @@ export default function Layouts() {
       confirmLabel: "Eliminar",
     });
     if (!ok) return;
-    await api.layouts.deleteZone(layoutId, zoneId);
-    toggleExpand(layoutId);
+    try {
+      await api.layouts.deleteZone(layoutId, zoneId);
+      toggleExpand(layoutId);
+      setError("");
+    } catch (err: any) {
+      setError(err.message || "Error en la operación");
+    }
   };
 
   return (
@@ -97,6 +132,12 @@ export default function Layouts() {
           <Plus className="h-4 w-4 mr-2" /> Nuevo layout
         </button>
       </div>
+
+      {error && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 animate-slide-down">
+          {error}
+        </div>
+      )}
 
       {showForm && (
         <div className="card mb-6">
@@ -130,19 +171,25 @@ export default function Layouts() {
         </div>
       )}
 
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-200 border-t-brand-600" />
+        </div>
+      )}
+
       <div className="space-y-3">
         {layouts.map((l) => (
           <div key={l.id} className="card">
             <div className="flex items-center justify-between">
-              <button onClick={() => toggleExpand(l.id)} className="flex items-center gap-2 flex-1 text-left">
+              <button onClick={() => toggleExpand(l.id)} className="flex items-center gap-2 flex-1 text-left" aria-label="Expandir">
                 <LayoutIcon className="h-5 w-5 text-purple-500" />
                 <span className="font-medium text-gray-900">{l.name}</span>
                 <span className="text-xs text-gray-400">{l.resolution} | {l.orientation === "portrait" ? "Vertical" : "Horizontal"}</span>
                 {l.zones && <span className="text-xs text-gray-400">({l.zones.length} zonas)</span>}
               </button>
               <div className="flex gap-1">
-                <button onClick={() => handleEdit(l)} className="p-1 text-gray-400 hover:text-gray-600"><Pencil className="h-4 w-4" /></button>
-                <button onClick={() => handleDelete(l.id)} className="p-1 text-gray-400 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
+                <button onClick={() => handleEdit(l)} className="p-1 text-gray-400 hover:text-gray-600" aria-label="Editar"><Pencil className="h-4 w-4" /></button>
+                <button onClick={() => handleDelete(l.id)} className="p-1 text-gray-400 hover:text-red-600" aria-label="Eliminar"><Trash2 className="h-4 w-4" /></button>
               </div>
             </div>
             {expanded[l.id] && (
@@ -157,8 +204,8 @@ export default function Layouts() {
                           <p className="text-[10px] text-gray-500">{z.type}</p>
                         </div>
                         <div className="absolute top-0 right-0 hidden group-hover:flex gap-0.5 bg-white/90 rounded-bl p-0.5">
-                          <button onClick={(e) => { e.stopPropagation(); openZoneForm(l.id, z); }} className="p-0.5 text-gray-500 hover:text-gray-700"><Pencil className="h-3 w-3" /></button>
-                          <button onClick={(e) => { e.stopPropagation(); deleteZone(l.id, z.id); }} className="p-0.5 text-gray-500 hover:text-red-600"><Trash2 className="h-3 w-3" /></button>
+                          <button onClick={(e) => { e.stopPropagation(); openZoneForm(l.id, z); }} className="p-0.5 text-gray-500 hover:text-gray-700" aria-label="Editar zona"><Pencil className="h-3 w-3" /></button>
+                          <button onClick={(e) => { e.stopPropagation(); deleteZone(l.id, z.id); }} className="p-0.5 text-gray-500 hover:text-red-600" aria-label="Eliminar zona"><Trash2 className="h-3 w-3" /></button>
                         </div>
                       </div>
                     ))}

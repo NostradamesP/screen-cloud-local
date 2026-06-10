@@ -16,22 +16,42 @@ const SEVERITY_COLORS: Record<string, string> = {
 
 export default function Notifications() {
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
 
   const load = async () => {
-    const data = await api.notifications.list();
-    setNotifications(data);
+    try {
+      setLoading(true);
+      const data = await api.notifications.list();
+      setNotifications(data);
+      setError("");
+    } catch (err: any) {
+      setError(err.message || "Error al cargar datos");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { load(); }, []);
 
   const markRead = async (id: string) => {
-    await api.notifications.markRead(id);
-    load();
+    try {
+      await api.notifications.markRead(id);
+      load();
+      setError("");
+    } catch (err: any) {
+      setError(err.message || "Error en la operación");
+    }
   };
 
   const markAllRead = async () => {
-    await api.notifications.markAllRead();
-    load();
+    try {
+      await api.notifications.markAllRead();
+      load();
+      setError("");
+    } catch (err: any) {
+      setError(err.message || "Error en la operación");
+    }
   };
 
   const unreadCount = notifications.filter((n) => !n.read).length;
@@ -46,6 +66,18 @@ export default function Notifications() {
           </button>
         )}
       </div>
+
+      {error && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 animate-slide-down">
+          {error}
+        </div>
+      )}
+
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-200 border-t-brand-600" />
+        </div>
+      )}
 
       <div className="space-y-2">
         {notifications.map((n) => {

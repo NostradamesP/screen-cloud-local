@@ -3,8 +3,8 @@ import { z } from "zod";
 import { db } from "../../db";
 import { contentItems, screens, SCREEN_PURPOSES } from "../../db/schema";
 import { eq, and } from "drizzle-orm";
-import { v4 as uuid } from "uuid";
 import { cacheDel } from "../../lib/cache";
+import { randomBytes } from "crypto";
 
 const screenPurposes = SCREEN_PURPOSES as readonly string[];
 
@@ -34,7 +34,15 @@ const pairSchema = z.object({
 });
 
 function generatePairCode(): string {
-  return Math.random().toString(36).substring(2, 8).toUpperCase();
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const bytes = randomBytes(6);
+  let code = "";
+  for (let i = 0; i < 6; i++) code += chars[bytes[i] % chars.length];
+  return code;
+}
+
+function generateScreenToken(screenId: string, orgId: string, fastify: FastifyInstance): string {
+  return fastify.signScreenToken(screenId, orgId);
 }
 
 function normalizeSettings(settings: unknown): Record<string, unknown> {
@@ -180,7 +188,11 @@ export async function screenRoutes(fastify: FastifyInstance) {
     return reply.status(204).send();
   });
 
-  fastify.post("/api/screens/pair", async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.post("/api/screens/pair", {
+    config: {
+      rateLimit: { max: 10, timeWindow: "1 minute" },
+    },
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
     const body = pairSchema.parse(request.body);
     const [screen] = await db.select().from(screens).where(
       and(eq(screens.pairCode, body.code), eq(screens.status, "offline"))
@@ -198,11 +210,19 @@ export async function screenRoutes(fastify: FastifyInstance) {
       })
       .where(eq(screens.id, screen.id))
       .returning();
-    return updated;
+    const screenToken = generateScreenToken(updated.id, updated.organizationId, fastify);
+    return { ...updated, screenToken };
   });
 
-  fastify.post("/api/screens/heartbeat", async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.post("/api/screens/heartbeat", {
+    preHandler: [fastify.authenticateScreen],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
     const body = heartbeatSchema.parse(request.body);
+    const screenAuth = await fastify.authenticateScreen(request, reply);
+    if (!screenAuth) return;
+    if (body.screenId !== screenAuth.screenId) {
+      return reply.status(403).send({ error: "Screen token does not match" });
+    }
     const hasPlayback = typeof body.playbackState === "string";
     const [updated] = await db.update(screens)
       .set({
@@ -218,7 +238,7 @@ export async function screenRoutes(fastify: FastifyInstance) {
           playbackUpdatedAt: new Date(),
         } : {}),
       })
-      .where(eq(screens.id, body.screenId))
+      .where(and(eq(screens.id, body.screenId), eq(screens.organizationId, screenAuth.orgId)))
       .returning();
     if (!updated) return reply.status(404).send({ error: "Screen not found" });
     return { ok: true };

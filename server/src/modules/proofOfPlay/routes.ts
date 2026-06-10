@@ -2,7 +2,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import { z } from "zod";
 import { db } from "../../db";
 import { contentItems, proofOfPlay, screens } from "../../db/schema";
-import { eq, and, gte, lte } from "drizzle-orm";
+import { eq, and, gte, lte, sql } from "drizzle-orm";
 
 const logPlaySchema = z.object({
   screenId: z.string().uuid(),
@@ -13,9 +13,15 @@ const logPlaySchema = z.object({
 });
 
 export async function proofOfPlayRoutes(fastify: FastifyInstance) {
-  fastify.post("/api/proof-of-play/log", async (request: FastifyRequest, reply: FastifyReply) => {
+  fastify.post("/api/proof-of-play/log", {
+    preHandler: [fastify.authenticateScreen],
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
     const body = logPlaySchema.parse(request.body);
-    const [screen] = await db.select({ id: screens.id, organizationId: screens.organizationId }).from(screens).where(eq(screens.id, body.screenId));
+    const screenAuth = await fastify.authenticateScreen(request, reply);
+    if (!screenAuth) return;
+    const [screen] = await db.select({ id: screens.id, organizationId: screens.organizationId }).from(screens).where(
+      and(eq(screens.id, body.screenId), eq(screens.organizationId, screenAuth.orgId))
+    );
     if (!screen) return reply.status(404).send({ error: "Screen not found" });
     if (body.contentItemId) {
       const [content] = await db.select({ id: contentItems.id }).from(contentItems).where(
@@ -59,13 +65,12 @@ export async function proofOfPlayRoutes(fastify: FastifyInstance) {
     if (query.screenId) conditions.push(eq(proofOfPlay.screenId, query.screenId));
     if (query.from) conditions.push(gte(proofOfPlay.playedAt, new Date(query.from)));
     if (query.to) conditions.push(lte(proofOfPlay.playedAt, new Date(query.to)));
-    const logs = await db.select({ log: proofOfPlay })
-      .from(proofOfPlay)
+    const [stats] = await db.select({
+      totalPlayed: sql<number>`count(*)::int`,
+      uniqueContent: sql<number>`count(distinct ${proofOfPlay.contentItemId})::int`,
+    }).from(proofOfPlay)
       .innerJoin(screens, eq(proofOfPlay.screenId, screens.id))
-      .where(and(...conditions))
-      .then((rows) => rows.map((row) => row.log));
-    const totalPlayed = logs.length;
-    const uniqueContent = new Set(logs.map(l => l.contentItemId)).size;
-    return { totalPlayed, uniqueContent, logs };
+      .where(and(...conditions));
+    return { totalPlayed: stats.totalPlayed, uniqueContent: stats.uniqueContent };
   });
 }

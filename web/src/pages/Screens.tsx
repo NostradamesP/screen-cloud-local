@@ -67,14 +67,14 @@ const PURPOSE_ICONS: Record<string, any> = {
 };
 
 const PURPOSE_LABELS: Record<string, string> = {
-  manufacturing_logistics: "Manufacturing & Logistics",
-  office_communications: "Office Communications",
-  cafeteria_restaurant: "Cafeteria & Restaurant",
-  retail_promotions: "Retail Promotions",
-  healthcare: "Healthcare",
-  events: "Events",
-  public_information: "Public Information",
-  other: "Custom",
+  manufacturing_logistics: "Manufactura y Logística",
+  office_communications: "Comunicaciones de Oficina",
+  cafeteria_restaurant: "Cafetería y Restaurante",
+  retail_promotions: "Promociones Retail",
+  healthcare: "Salud",
+  events: "Eventos",
+  public_information: "Información Pública",
+  other: "Personalizado",
   office: "Oficina",
   public_info: "Información Pública",
   menu_board: "Menú Digital",

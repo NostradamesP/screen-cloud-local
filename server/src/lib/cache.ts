@@ -22,9 +22,20 @@ export async function cacheSet(key: string, value: unknown, ttl = TTL): Promise<
   }
 }
 
+async function scanKeys(pattern: string): Promise<string[]> {
+  const keys: string[] = [];
+  let cursor = "0";
+  do {
+    const [nextCursor, batch] = await redis.scan(cursor, "MATCH", pattern, "COUNT", 100);
+    cursor = nextCursor;
+    keys.push(...batch);
+  } while (cursor !== "0");
+  return keys;
+}
+
 export async function cacheDel(pattern: string): Promise<void> {
   try {
-    const keys = await redis.keys(pattern);
+    const keys = await scanKeys(pattern);
     if (keys.length > 0) await redis.del(...keys);
   } catch {
     // silently fail

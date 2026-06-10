@@ -37,6 +37,12 @@ export const config = {
     expiresIn: process.env.JWT_EXPIRES_IN ?? "7d",
   },
 
+  cors: {
+    origins: process.env.CORS_ORIGINS
+      ? process.env.CORS_ORIGINS.split(",").map((s) => s.trim()).filter(Boolean)
+      : isProduction ? [] : true,
+  },
+
   oauth: {
     issuer: process.env.OAUTH_ISSUER,
     clientId: process.env.OAUTH_CLIENT_ID,

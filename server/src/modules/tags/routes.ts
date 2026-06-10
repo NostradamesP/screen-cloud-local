@@ -62,4 +62,26 @@ export async function tagRoutes(fastify: FastifyInstance) {
     const rows = await db.select({ tagId: contentTags.tagId }).from(contentTags).where(eq(contentTags.contentId, id));
     return rows.map(r => r.tagId);
   });
+
+  fastify.get("/api/content/tags/batch", async (request: FastifyRequest, reply: FastifyReply) => {
+    const { orgId } = request.user;
+    const query = request.query as Record<string, string>;
+    const idsParam = query.ids;
+    if (!idsParam) return reply.status(400).send({ error: "ids query parameter is required" });
+    const ids = idsParam.split(",").filter(Boolean);
+    if (ids.length === 0) return {};
+    const orgContent = await db.select({ id: contentItems.id }).from(contentItems).where(
+      and(inArray(contentItems.id, ids), eq(contentItems.organizationId, orgId))
+    );
+    const validIds = new Set(orgContent.map(c => c.id));
+    const rows = await db.select({ contentId: contentTags.contentId, tagId: contentTags.tagId })
+      .from(contentTags)
+      .where(inArray(contentTags.contentId, [...validIds]));
+    const result: Record<string, string[]> = {};
+    for (const id of validIds) result[id] = [];
+    for (const row of rows) {
+      if (result[row.contentId]) result[row.contentId].push(row.tagId);
+    }
+    return result;
+  });
 }

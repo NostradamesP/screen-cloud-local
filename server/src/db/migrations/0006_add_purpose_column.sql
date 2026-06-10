@@ -1,0 +1,1 @@
+ALTER TABLE "screens" ADD COLUMN IF NOT EXISTS "purpose" varchar(30) DEFAULT 'other' NOT NULL;

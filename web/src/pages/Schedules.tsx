@@ -25,18 +25,24 @@ export default function Schedules() {
     daysOfWeek: [] as number[],
     priority: 0,
   });
+  const [error, setError] = useState("");
 
   const load = async () => {
-    const [s, p, sc, g] = await Promise.all([
-      api.schedules.list().catch(() => []),
-      api.playlists.list().catch(() => []),
-      api.screens.list().catch(() => []),
-      api.screenGroups.list().catch(() => []),
-    ]);
-    setSchedules(s);
-    setPlaylists(p);
-    setScreens(sc);
-    setGroups(g);
+    try {
+      const [s, p, sc, g] = await Promise.all([
+        api.schedules.list().catch(() => []),
+        api.playlists.list().catch(() => []),
+        api.screens.list().catch(() => []),
+        api.screenGroups.list().catch(() => []),
+      ]);
+      setSchedules(s);
+      setPlaylists(p);
+      setScreens(sc);
+      setGroups(g);
+      setError("");
+    } catch (err: any) {
+      setError(err.message || "Error al cargar datos");
+    }
   };
 
   useEffect(() => { load(); }, []);
@@ -52,24 +58,29 @@ export default function Schedules() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const payload: any = {
-      ...form,
-      priority: parseInt(form.priority) || 0,
-      screenId: form.screenId || undefined,
-      groupId: form.groupId || undefined,
-      startDate: form.startDate || undefined,
-      endDate: form.endDate || undefined,
-      timeStart: form.timeStart || undefined,
-      timeEnd: form.timeEnd || undefined,
-    };
-    if (editing) {
-      await api.schedules.update(editing.id, payload);
-    } else {
-      await api.schedules.create(payload);
+    try {
+      const payload: any = {
+        ...form,
+        priority: parseInt(form.priority) || 0,
+        screenId: form.screenId || undefined,
+        groupId: form.groupId || undefined,
+        startDate: form.startDate || undefined,
+        endDate: form.endDate || undefined,
+        timeStart: form.timeStart || undefined,
+        timeEnd: form.timeEnd || undefined,
+      };
+      if (editing) {
+        await api.schedules.update(editing.id, payload);
+      } else {
+        await api.schedules.create(payload);
+      }
+      setShowForm(false);
+      setEditing(null);
+      load();
+      setError("");
+    } catch (err: any) {
+      setError(err.message || "Error en la operación");
     }
-    setShowForm(false);
-    setEditing(null);
-    load();
   };
 
   const handleEdit = (s: any) => {
@@ -96,8 +107,13 @@ export default function Schedules() {
       confirmLabel: "Eliminar",
     });
     if (!ok) return;
-    await api.schedules.delete(id);
-    load();
+    try {
+      await api.schedules.delete(id);
+      load();
+      setError("");
+    } catch (err: any) {
+      setError(err.message || "Error en la operación");
+    }
   };
 
   return (
@@ -108,6 +124,12 @@ export default function Schedules() {
           <Plus className="h-4 w-4 mr-2" /> Nueva
         </button>
       </div>
+
+      {error && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 animate-slide-down">
+          {error}
+        </div>
+      )}
 
       {showForm && (
         <div className="card mb-6">
@@ -204,10 +226,10 @@ export default function Schedules() {
                   </div>
                 </div>
                 <div className="flex gap-1">
-                  <button onClick={() => handleEdit(s)} className="p-1 text-gray-400 hover:text-gray-600">
+                  <button onClick={() => handleEdit(s)} className="p-1 text-gray-400 hover:text-gray-600" aria-label="Editar">
                     <Pencil className="h-4 w-4" />
                   </button>
-                  <button onClick={() => handleDelete(s.id)} className="p-1 text-gray-400 hover:text-red-600">
+                  <button onClick={() => handleDelete(s.id)} className="p-1 text-gray-400 hover:text-red-600" aria-label="Eliminar">
                     <Trash2 className="h-4 w-4" />
                   </button>
                 </div>

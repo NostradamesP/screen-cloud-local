@@ -44,7 +44,7 @@ async function resolveActiveSchedule(screenId: string) {
   return matchedSchedule;
 }
 
-const PLAYER_VERSION = "1.7.0";
+const PLAYER_VERSION = "1.8.0";
 
 function templateForPurpose(purpose?: string | null) {
   switch (purpose) {
@@ -128,6 +128,11 @@ export async function playerRoutes(fastify: FastifyInstance) {
   fastify.get("/api/player/version", async () => ({ version: PLAYER_VERSION }));
   fastify.get("/api/player/:screenId", async (request: FastifyRequest, reply: FastifyReply) => {
     const { screenId } = request.params as { screenId: string };
+    const screenAuth = await fastify.authenticateScreen(request, reply);
+    if (!screenAuth) return;
+    if (screenAuth.screenId !== screenId) {
+      return reply.status(403).send({ error: "Screen token does not match" });
+    }
 
     const cacheKey = `player:${screenId}`;
     const cached = await cacheGet<unknown>(cacheKey);
@@ -242,21 +247,71 @@ export async function playerRoutes(fastify: FastifyInstance) {
   }, async (request: FastifyRequest) => {
     const { orgId } = request.user;
     const orgScreens = await db.select().from(screens).where(eq(screens.organizationId, orgId));
+
+    const screenIds = orgScreens.map(s => s.id);
+
+    let groupMemberships: { screenId: string; groupId: string }[] = [];
+    if (screenIds.length > 0) {
+      groupMemberships = await db.select({
+        screenId: screenGroupScreens.screenId,
+        groupId: screenGroupScreens.groupId,
+      }).from(screenGroupScreens).where(inArray(screenGroupScreens.screenId, screenIds));
+    }
+
+    const groupsByScreen = new Map<string, string[]>();
+    for (const gm of groupMemberships) {
+      const list = groupsByScreen.get(gm.screenId) ?? [];
+      list.push(gm.groupId);
+      groupsByScreen.set(gm.screenId, list);
+    }
+
+    const allActiveSchedules = await db.select().from(schedules).where(
+      and(eq(schedules.active, true), eq(schedules.organizationId, orgId))
+    ).orderBy(desc(schedules.priority));
+
+    const now = new Date();
+    const dayOfWeek = now.getDay();
+    const timeStr = now.toTimeString().substring(0, 5);
+
+    function matchSchedule(screenId: string) {
+      const screenGroupIds = groupsByScreen.get(screenId) ?? [];
+      for (const schedule of allActiveSchedules) {
+        const matchesScreen = schedule.screenId === screenId;
+        const matchesOrg = schedule.screenId === null && schedule.groupId === null;
+        const matchesGroup = schedule.groupId !== null && screenGroupIds.includes(schedule.groupId);
+        if (!matchesScreen && !matchesOrg && !matchesGroup) continue;
+        if (schedule.daysOfWeek && !schedule.daysOfWeek.includes(dayOfWeek)) continue;
+        if (schedule.startDate && now < new Date(schedule.startDate)) continue;
+        if (schedule.endDate && now > new Date(schedule.endDate + "T23:59:59")) continue;
+        if (schedule.timeStart && timeStr < schedule.timeStart) continue;
+        if (schedule.timeEnd && timeStr > schedule.timeEnd) continue;
+        return schedule;
+      }
+      return null;
+    }
+
+    const idleContentIds = orgScreens.map(s => s.idleContentId).filter((id): id is string => id !== null && id !== undefined);
+    let idleContentMap = new Map<string, { id: string; title: string; type: string }>();
+    if (idleContentIds.length > 0) {
+      const idleContents = await db.select({
+        id: contentItems.id,
+        title: contentItems.title,
+        type: contentItems.type,
+      }).from(contentItems).where(inArray(contentItems.id, idleContentIds));
+      for (const ic of idleContents) {
+        idleContentMap.set(ic.id, { id: ic.id, title: ic.title, type: ic.type });
+      }
+    }
+
     const result = [];
     for (const screen of orgScreens) {
-      const schedule = await resolveActiveSchedule(screen.id);
+      const schedule = matchSchedule(screen.id);
       const isOnline = screen.lastHeartbeat
         ? (Date.now() - new Date(screen.lastHeartbeat).getTime()) < 60000
         : false;
       const connectionStatus = isOnline ? "online" : "offline";
       const playbackState = isOnline ? (screen.playbackState || "empty") : "offline";
-      let idleContent = null;
-      if (screen.idleContentId) {
-        const [content] = await db.select().from(contentItems).where(eq(contentItems.id, screen.idleContentId));
-        if (content) {
-          idleContent = { id: content.id, title: content.title, type: content.type };
-        }
-      }
+      const idleContent = screen.idleContentId ? idleContentMap.get(screen.idleContentId) ?? null : null;
       result.push({
         screenId: screen.id,
         screenName: screen.name,

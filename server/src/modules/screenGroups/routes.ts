@@ -31,14 +31,24 @@ export async function screenGroupRoutes(fastify: FastifyInstance) {
       .where(eq(screenGroups.organizationId, orgId))
       .orderBy(screenGroups.name);
 
-    const result = [];
-    for (const group of groups) {
-      const members = await db.select()
-        .from(screenGroupScreens)
-        .where(eq(screenGroupScreens.groupId, group.id));
-      result.push({ ...group, screenCount: members.length, screenIds: members.map(m => m.screenId) });
+    if (groups.length === 0) return [];
+
+    const groupIds = groups.map(g => g.id);
+    const allMembers = await db.select()
+      .from(screenGroupScreens)
+      .where(inArray(screenGroupScreens.groupId, groupIds));
+
+    const membersByGroup = new Map<string, typeof allMembers>();
+    for (const member of allMembers) {
+      const list = membersByGroup.get(member.groupId) ?? [];
+      list.push(member);
+      membersByGroup.set(member.groupId, list);
     }
-    return result;
+
+    return groups.map(group => {
+      const members = membersByGroup.get(group.id) ?? [];
+      return { ...group, screenCount: members.length, screenIds: members.map(m => m.screenId) };
+    });
   });
 
   fastify.get("/api/screen-groups/:id", async (request: FastifyRequest, reply: FastifyReply) => {

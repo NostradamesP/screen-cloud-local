@@ -1,6 +1,15 @@
 node_modules/
 dist/
 .env
+.env.production
+server/.env
 *.log
 .DS_Store
 *.tsbuildinfo
+backups/
+uploads/
+*.bak
+*.pem
+*.key
+*.crt
+docker-compose.override.yml

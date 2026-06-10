@@ -8,9 +8,18 @@ const COLORS = ["#6366f1", "#22c55e", "#f59e0b", "#ef4444", "#3b82f6", "#ec4899"
 export default function Calendar() {
   const [schedules, setSchedules] = useState<any[]>([]);
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    api.schedules.list().then(setSchedules).catch(() => {});
+    (async () => {
+      try {
+        const data = await api.schedules.list();
+        setSchedules(data);
+        setError("");
+      } catch (err: any) {
+        setError(err.message || "Error al cargar datos");
+      }
+    })();
   }, []);
 
   const year = currentDate.getFullYear();
@@ -65,6 +74,12 @@ export default function Calendar() {
           <button onClick={nextMonth} className="btn-secondary p-2"><ChevronRight className="h-4 w-4" /></button>
         </div>
       </div>
+
+      {error && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 animate-slide-down">
+          {error}
+        </div>
+      )}
       <div className="grid grid-cols-7 gap-1 mb-1">
         {DAYS.map(d => <div key={d} className="text-center text-xs font-medium text-gray-500 py-1">{d}</div>)}
       </div>

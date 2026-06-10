@@ -11,15 +11,32 @@ export default function Tags() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [form, setForm] = useState({ name: "", color: "#6366f1" });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
 
-  const load = async () => setTags(await api.tags.list());
+  const load = async () => {
+    try {
+      setLoading(true);
+      setTags(await api.tags.list());
+      setError("");
+    } catch (err: any) {
+      setError(err.message || "Error al cargar datos");
+    } finally {
+      setLoading(false);
+    }
+  };
   useEffect(() => { load(); }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editing) await api.tags.update(editing.id, form);
-    else await api.tags.create(form);
-    setShowForm(false); setEditing(null); load();
+    try {
+      if (editing) await api.tags.update(editing.id, form);
+      else await api.tags.create(form);
+      setShowForm(false); setEditing(null); load();
+      setError("");
+    } catch (err: any) {
+      setError(err.message || "Error en la operación");
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -29,7 +46,12 @@ export default function Tags() {
       confirmLabel: "Eliminar",
     });
     if (!ok) return;
-    await api.tags.delete(id); load();
+    try {
+      await api.tags.delete(id); load();
+      setError("");
+    } catch (err: any) {
+      setError(err.message || "Error en la operación");
+    }
   };
 
   return (
@@ -40,6 +62,12 @@ export default function Tags() {
           <Plus className="h-4 w-4 mr-2" /> Nueva
         </button>
       </div>
+
+      {error && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 animate-slide-down">
+          {error}
+        </div>
+      )}
       {showForm && (
         <div className="card mb-6">
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -62,13 +90,19 @@ export default function Tags() {
           </form>
         </div>
       )}
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-200 border-t-brand-600" />
+        </div>
+      )}
+
       <div className="flex flex-wrap gap-2">
         {tags.map(t => (
           <div key={t.id} className="flex items-center gap-2 px-3 py-1.5 rounded-full text-sm text-white" style={{ backgroundColor: t.color }}>
             <Hash className="h-3 w-3" />
             <span>{t.name}</span>
-            <button onClick={() => { setForm({ name: t.name, color: t.color }); setEditing(t); setShowForm(true); }} className="p-0.5 hover:opacity-80"><Pencil className="h-3 w-3" /></button>
-            <button onClick={() => handleDelete(t.id)} className="p-0.5 hover:opacity-80"><Trash2 className="h-3 w-3" /></button>
+            <button onClick={() => { setForm({ name: t.name, color: t.color }); setEditing(t); setShowForm(true); }} className="p-0.5 hover:opacity-80" aria-label="Editar"><Pencil className="h-3 w-3" /></button>
+            <button onClick={() => handleDelete(t.id)} className="p-0.5 hover:opacity-80" aria-label="Eliminar"><Trash2 className="h-3 w-3" /></button>
           </div>
         ))}
         {tags.length === 0 && <p className="text-gray-500">No hay etiquetas.</p>}

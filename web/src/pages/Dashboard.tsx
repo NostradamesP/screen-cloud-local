@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "@/lib/api";
 import { AlertTriangle, Monitor, Image, ListVideo, Calendar, Wifi, WifiOff, Play, Pause, Building2, CalendarDays, Info, UtensilsCrossed, DoorOpen, Presentation, Gauge, Factory, ShoppingBag, HeartPulse } from "lucide-react";
@@ -21,12 +21,12 @@ const PURPOSE_ICONS: Record<string, any> = {
 };
 
 const PURPOSE_LABELS: Record<string, string> = {
-  manufacturing_logistics: "Manufacturing & Logistics",
-  office_communications: "Office Communications",
-  cafeteria_restaurant: "Cafeteria & Restaurant",
-  retail_promotions: "Retail Promotions",
-  healthcare: "Healthcare",
-  public_information: "Public Information",
+  manufacturing_logistics: "Manufactura y Logística",
+  office_communications: "Comunicaciones de Oficina",
+  cafeteria_restaurant: "Cafetería y Restaurante",
+  retail_promotions: "Promociones Retail",
+  healthcare: "Salud",
+  public_information: "Información Pública",
   office: "Oficina",
   events: "Eventos",
   public_info: "Información Pública",
@@ -34,7 +34,7 @@ const PURPOSE_LABELS: Record<string, string> = {
   lobby: "Lobby / Recepción",
   meeting_room: "Sala de Reuniones",
   production: "Producción / KPIs",
-  other: "Otro",
+  other: "Personalizado",
 };
 
 function playbackMeta(screen: any) {
@@ -91,18 +91,18 @@ export default function Dashboard() {
   }, []);
 
   const cards = [
-    { label: "Pantallas", value: stats.screens, icon: Monitor, color: "text-blue-600 bg-blue-50" },
-    { label: "Contenidos", value: stats.content, icon: Image, color: "text-green-600 bg-green-50" },
-    { label: "Playlists", value: stats.playlists, icon: ListVideo, color: "text-purple-600 bg-purple-50" },
-    { label: "Programaciones", value: stats.schedules, icon: Calendar, color: "text-orange-600 bg-orange-50" },
+    { label: "Pantallas", value: stats.screens, icon: Monitor, color: "text-blue-600 bg-blue-50", route: "/screens" },
+    { label: "Contenidos", value: stats.content, icon: Image, color: "text-green-600 bg-green-50", route: "/content" },
+    { label: "Playlists", value: stats.playlists, icon: ListVideo, color: "text-purple-600 bg-purple-50", route: "/playlists" },
+    { label: "Programaciones", value: stats.schedules, icon: Calendar, color: "text-orange-600 bg-orange-50", route: "/schedules" },
   ];
 
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-6">Dashboard</h1>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {cards.map(({ label, value, icon: Icon, color }) => (
-          <button key={label} onClick={() => navigate("/screens")} className="card flex items-center gap-4 text-left transition-all hover:-translate-y-0.5 hover:shadow-md">
+        {cards.map(({ label, value, icon: Icon, color, route }) => (
+          <button key={label} onClick={() => navigate(route)} className="card flex items-center gap-4 text-left transition-all hover:-translate-y-0.5 hover:shadow-md">
             <div className={`flex h-12 w-12 items-center justify-center rounded-lg ${color}`}>
               <Icon className="h-6 w-6" />
             </div>

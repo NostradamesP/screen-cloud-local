@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Link } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import Layout from "@/components/Layout";
 import Login from "@/pages/Login";
@@ -18,12 +18,23 @@ import Users from "@/pages/Users";
 import Calendar from "@/pages/Calendar";
 import Settings from "@/pages/Settings";
 
+function NotFound() {
+  return (
+    <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
+      <p className="text-6xl font-black text-gray-200">404</p>
+      <h1 className="mt-4 text-xl font-semibold text-gray-800">Página no encontrada</h1>
+      <p className="mt-2 text-sm text-gray-500">La ruta que buscas no existe o fue movida.</p>
+      <Link to="/" className="btn-primary mt-6">Volver al Dashboard</Link>
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <AuthProvider>
       <Routes>
         <Route path="/login" element={<Login />} />
-          <Route element={<Layout />}>
+        <Route element={<Layout />}>
           <Route index element={<Dashboard />} />
           <Route path="/content" element={<ContentHub />} />
           <Route path="/content/library" element={<Content />} />
@@ -39,6 +50,7 @@ export default function App() {
           <Route path="/users" element={<Users />} />
           <Route path="/calendar" element={<Calendar />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
     </AuthProvider>

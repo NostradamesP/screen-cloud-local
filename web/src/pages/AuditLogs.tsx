@@ -18,12 +18,22 @@ export default function AuditLogs() {
   const [data, setData] = useState<{ items: any[]; total: number; page: number; totalPages: number } | null>(null);
   const [page, setPage] = useState(1);
   const [filter, setFilter] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
 
   const load = async () => {
-    const params: Record<string, string> = { page: String(page), limit: "50" };
-    if (filter) params.entityType = filter;
-    const result = await api.auditLogs.list(params);
-    setData(result);
+    try {
+      setLoading(true);
+      const params: Record<string, string> = { page: String(page), limit: "50" };
+      if (filter) params.entityType = filter;
+      const result = await api.auditLogs.list(params);
+      setData(result);
+      setError("");
+    } catch (err: any) {
+      setError(err.message || "Error al cargar datos");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { load(); }, [page, filter]);
@@ -39,6 +49,18 @@ export default function AuditLogs() {
           <option value="playlist_item">Items de playlist</option>
         </select>
       </div>
+
+      {error && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 animate-slide-down">
+          {error}
+        </div>
+      )}
+
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-200 border-t-brand-600" />
+        </div>
+      )}
 
       <div className="card overflow-hidden">
         <div className="overflow-x-auto">

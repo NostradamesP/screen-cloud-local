@@ -1,0 +1,15 @@
+CREATE INDEX IF NOT EXISTS "screens_org_idx" ON "screens" ("organization_id");
+CREATE INDEX IF NOT EXISTS "content_items_org_idx" ON "content_items" ("organization_id");
+CREATE INDEX IF NOT EXISTS "playlists_org_idx" ON "playlists" ("organization_id");
+CREATE INDEX IF NOT EXISTS "schedules_org_idx" ON "schedules" ("organization_id");
+CREATE INDEX IF NOT EXISTS "schedules_active_idx" ON "schedules" ("organization_id", "active");
+CREATE INDEX IF NOT EXISTS "proof_of_play_screen_idx" ON "proof_of_play" ("screen_id");
+CREATE INDEX IF NOT EXISTS "proof_of_play_played_at_idx" ON "proof_of_play" ("played_at");
+CREATE INDEX IF NOT EXISTS "audit_logs_org_idx" ON "audit_logs" ("organization_id");
+CREATE INDEX IF NOT EXISTS "audit_logs_created_at_idx" ON "audit_logs" ("created_at");
+CREATE INDEX IF NOT EXISTS "notifications_org_idx" ON "notifications" ("organization_id");
+CREATE INDEX IF NOT EXISTS "media_assets_org_idx" ON "media_assets" ("organization_id");
+CREATE INDEX IF NOT EXISTS "tags_org_idx" ON "tags" ("organization_id");
+CREATE INDEX IF NOT EXISTS "screen_groups_org_idx" ON "screen_groups" ("organization_id");
+CREATE INDEX IF NOT EXISTS "layouts_org_idx" ON "layouts" ("organization_id");
+CREATE INDEX IF NOT EXISTS "widgets_org_idx" ON "widgets" ("organization_id");

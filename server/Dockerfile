@@ -14,9 +14,12 @@ RUN npm ci && npm run build
 FROM base AS runner
 WORKDIR /app/server
 ENV NODE_ENV=production
+RUN addgroup -S app && adduser -S app -G app
 COPY --from=deps /app/server/node_modules ./node_modules
 COPY --from=build /app/server/dist ./dist
 COPY server/package.json ./
 COPY player /app/player
+RUN mkdir -p /app/server/uploads && chown -R app:app /app/server
+USER app
 EXPOSE 3000
 CMD ["node", "dist/index.js"]

@@ -10,28 +10,43 @@ export default function Widgets() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [form, setForm] = useState({ widgetDefinitionId: "", name: "" });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
 
   const load = async () => {
-    const [w, d] = await Promise.all([
-      api.widgets.list(),
-      api.widgets.definitions().catch(() => []),
-    ]);
-    setWidgets(w);
-    setDefinitions(d);
+    try {
+      setLoading(true);
+      const [w, d] = await Promise.all([
+        api.widgets.list(),
+        api.widgets.definitions().catch(() => []),
+      ]);
+      setWidgets(w);
+      setDefinitions(d);
+      setError("");
+    } catch (err: any) {
+      setError(err.message || "Error al cargar datos");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { load(); }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editing) {
-      await api.widgets.update(editing.id, form);
-    } else {
-      await api.widgets.create(form);
+    try {
+      if (editing) {
+        await api.widgets.update(editing.id, form);
+      } else {
+        await api.widgets.create(form);
+      }
+      setShowForm(false);
+      setEditing(null);
+      load();
+      setError("");
+    } catch (err: any) {
+      setError(err.message || "Error en la operación");
     }
-    setShowForm(false);
-    setEditing(null);
-    load();
   };
 
   const handleEdit = (w: any) => {
@@ -47,8 +62,13 @@ export default function Widgets() {
       confirmLabel: "Eliminar",
     });
     if (!ok) return;
-    await api.widgets.delete(id);
-    load();
+    try {
+      await api.widgets.delete(id);
+      load();
+      setError("");
+    } catch (err: any) {
+      setError(err.message || "Error en la operación");
+    }
   };
 
   const defName = (id: string) => definitions.find((d) => d.id === id)?.name ?? id;
@@ -61,6 +81,12 @@ export default function Widgets() {
           <Plus className="h-4 w-4 mr-2" /> Nuevo widget
         </button>
       </div>
+
+      {error && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 animate-slide-down">
+          {error}
+        </div>
+      )}
 
       {showForm && (
         <div className="card mb-6">
@@ -86,6 +112,12 @@ export default function Widgets() {
         </div>
       )}
 
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-200 border-t-brand-600" />
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {widgets.map((w) => (
           <div key={w.id} className="card">
@@ -100,8 +132,8 @@ export default function Widgets() {
                 </div>
               </div>
               <div className="flex gap-1">
-                <button onClick={() => handleEdit(w)} className="p-1 text-gray-400 hover:text-gray-600"><Pencil className="h-4 w-4" /></button>
-                <button onClick={() => handleDelete(w.id)} className="p-1 text-gray-400 hover:text-red-600"><Trash2 className="h-4 w-4" /></button>
+                <button onClick={() => handleEdit(w)} className="p-1 text-gray-400 hover:text-gray-600" aria-label="Editar"><Pencil className="h-4 w-4" /></button>
+                <button onClick={() => handleDelete(w.id)} className="p-1 text-gray-400 hover:text-red-600" aria-label="Eliminar"><Trash2 className="h-4 w-4" /></button>
               </div>
             </div>
           </div>

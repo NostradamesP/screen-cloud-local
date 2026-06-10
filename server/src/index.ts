@@ -10,6 +10,7 @@ import { sql } from "drizzle-orm";
 import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
+import { ZodError } from "zod";
 import { config } from "./config";
 import { db } from "./db";
 import { drizzle } from "drizzle-orm/postgres-js";
@@ -42,12 +43,36 @@ const fastify = Fastify({
 });
 
 async function main() {
-  await fastify.register(cors, { origin: true });
+  fastify.setErrorHandler((error, request, reply) => {
+    if (error instanceof ZodError) {
+      return reply.status(400).send({
+        error: "Validation error",
+        details: error.errors.map((e) => ({
+          path: e.path.join("."),
+          message: e.message,
+        })),
+      });
+    }
+    if (error.validation) {
+      return reply.status(400).send({ error: "Validation error", details: error.message });
+    }
+    fastify.log.error({ err: error, url: request.url }, "Unhandled error");
+    return reply.status(error.statusCode ?? 500).send({
+      error: error.statusCode ? error.message : "Internal server error",
+    });
+  });
+
+  await fastify.register(cors, {
+    origin: config.cors.origins,
+    credentials: true,
+  });
   await fastify.register(rateLimit, { max: 100, timeWindow: "1 minute" });
   await fastify.register(swagger, {
     openapi: { info: { title: "Signage API", version: "1.0.0", description: "Screen Cloud Local API" } },
   });
-  await fastify.register(swaggerUI, { routePrefix: "/docs" });
+  if (config.nodeEnv !== "production") {
+    await fastify.register(swaggerUI, { routePrefix: "/docs" });
+  }
   await fastify.register(websocket);
   await fastify.register(multipart, { limits: { fileSize: 500 * 1024 * 1024 } });
   await fastify.register(authPlugin);

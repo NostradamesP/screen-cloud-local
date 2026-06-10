@@ -10,29 +10,44 @@ export default function ScreenGroups() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [form, setForm] = useState({ name: "", screenIds: [] as string[] });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
 
   const load = async () => {
-    const [g, s] = await Promise.all([
-      api.screenGroups.list(),
-      api.screens.list(),
-    ]);
-    setGroups(g);
-    setScreens(s);
+    try {
+      setLoading(true);
+      const [g, s] = await Promise.all([
+        api.screenGroups.list(),
+        api.screens.list(),
+      ]);
+      setGroups(g);
+      setScreens(s);
+      setError("");
+    } catch (err: any) {
+      setError(err.message || "Error al cargar datos");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { load(); }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editing) {
-      await api.screenGroups.update(editing.id, form);
-    } else {
-      await api.screenGroups.create(form);
+    try {
+      if (editing) {
+        await api.screenGroups.update(editing.id, form);
+      } else {
+        await api.screenGroups.create(form);
+      }
+      setShowForm(false);
+      setEditing(null);
+      setForm({ name: "", screenIds: [] });
+      load();
+      setError("");
+    } catch (err: any) {
+      setError(err.message || "Error en la operación");
     }
-    setShowForm(false);
-    setEditing(null);
-    setForm({ name: "", screenIds: [] });
-    load();
   };
 
   const handleEdit = (g: any) => {
@@ -48,8 +63,13 @@ export default function ScreenGroups() {
       confirmLabel: "Eliminar",
     });
     if (!ok) return;
-    await api.screenGroups.delete(id);
-    load();
+    try {
+      await api.screenGroups.delete(id);
+      load();
+      setError("");
+    } catch (err: any) {
+      setError(err.message || "Error en la operación");
+    }
   };
 
   const toggleScreen = (screenId: string) => {
@@ -75,6 +95,12 @@ export default function ScreenGroups() {
           <Plus className="h-4 w-4 mr-2" /> Nuevo grupo
         </button>
       </div>
+
+      {error && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 animate-slide-down">
+          {error}
+        </div>
+      )}
 
       {showForm && (
         <div className="card mb-6">
@@ -107,6 +133,12 @@ export default function ScreenGroups() {
         </div>
       )}
 
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-200 border-t-brand-600" />
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {groups.map((g) => (
           <div key={g.id} className="card">
@@ -121,10 +153,10 @@ export default function ScreenGroups() {
                 </div>
               </div>
               <div className="flex gap-1">
-                <button onClick={() => handleEdit(g)} className="p-1 text-gray-400 hover:text-gray-600">
+                <button onClick={() => handleEdit(g)} className="p-1 text-gray-400 hover:text-gray-600" aria-label="Editar">
                   <Pencil className="h-4 w-4" />
                 </button>
-                <button onClick={() => handleDelete(g.id)} className="p-1 text-gray-400 hover:text-red-600">
+                <button onClick={() => handleDelete(g.id)} className="p-1 text-gray-400 hover:text-red-600" aria-label="Eliminar">
                   <Trash2 className="h-4 w-4" />
                 </button>
               </div>
