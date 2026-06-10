@@ -230,6 +230,8 @@ if ('serviceWorker' in navigator) {
   var heartbeatTimer = null;
   var videoElement = null;
   var reconnectAllowed = true;
+  var wsReconnectDelay = 5000;
+  var WS_RECONNECT_MAX = 60000;
   var currentPlayback = {
     playbackState: 'empty',
     currentContentId: null,
@@ -623,13 +625,37 @@ if ('serviceWorker' in navigator) {
         video.controls = false;
         videoElement = video;
         mediaEl = video;
+        var stallCheckTimer = null;
+        var lastTime = 0;
+        var stallCount = 0;
         try { var p = video.play(); if (p && typeof p.catch === 'function') p.catch(function () {}); } catch (e) {}
+        video.addEventListener('playing', function () {
+          if (stallCheckTimer) clearInterval(stallCheckTimer);
+          stallCount = 0;
+          stallCheckTimer = setInterval(function () {
+            if (video.paused || video.ended) return;
+            if (video.currentTime === lastTime) {
+              stallCount++;
+              if (stallCount >= 3) {
+                clearInterval(stallCheckTimer);
+                videoElement = null;
+                currentIndex = (currentIndex + 1) % items.length;
+                renderCurrent();
+              }
+            } else {
+              stallCount = 0;
+            }
+            lastTime = video.currentTime;
+          }, 2000);
+        });
         video.addEventListener('ended', function () {
+          if (stallCheckTimer) clearInterval(stallCheckTimer);
           videoElement = null;
           currentIndex = (currentIndex + 1) % items.length;
           renderCurrent();
         });
         video.addEventListener('error', function () {
+          if (stallCheckTimer) clearInterval(stallCheckTimer);
           setPlaybackState('error', item, 'Video no disponible');
           sendHeartbeat();
           container.innerHTML = '<div class="slide active" style="flex-direction:column;gap:8px;justify-content:center;align-items:center;">' +
@@ -892,9 +918,14 @@ if ('serviceWorker' in navigator) {
   // --- WebSocket ---
   function connectWebSocket() {
     if (ws) { ws.close(); }
-    ws = new WebSocket(WS_BASE + '/ws/screen/' + screenId);
+    var wsUrl = WS_BASE + '/ws/screen/' + screenId;
+    if (screenToken) {
+      wsUrl += '?token=' + encodeURIComponent(screenToken);
+    }
+    ws = new WebSocket(wsUrl);
     ws.onopen = function () {
       setStatus('online', 'Conectado');
+      wsReconnectDelay = 5000;
     };
     ws.onmessage = function (event) {
       try {
@@ -932,7 +963,10 @@ if ('serviceWorker' in navigator) {
     };
     ws.onclose = function () {
       setStatus('offline', 'Desconectado');
-      if (reconnectAllowed && screenId) setTimeout(connectWebSocket, 5000);
+      if (reconnectAllowed && screenId) {
+        setTimeout(connectWebSocket, wsReconnectDelay);
+        wsReconnectDelay = Math.min(wsReconnectDelay * 2, WS_RECONNECT_MAX);
+      }
     };
     ws.onerror = function () {
       ws.close();
