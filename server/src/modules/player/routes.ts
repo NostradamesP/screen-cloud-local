@@ -44,7 +44,7 @@ async function resolveActiveSchedule(screenId: string) {
   return matchedSchedule;
 }
 
-const PLAYER_VERSION = "1.8.0";
+const PLAYER_VERSION = "1.9.0";
 
 function templateForPurpose(purpose?: string | null) {
   switch (purpose) {
@@ -97,6 +97,12 @@ function playerScreenPayload(screen: any) {
       temperature: typeof settings.templateTemperature === "string" ? settings.templateTemperature : "",
       ticker: typeof settings.templateTicker === "string" ? settings.templateTicker : "",
       logoText: typeof settings.templateLogoText === "string" ? settings.templateLogoText : "",
+      kpi1Label: typeof settings.templateKpi1Label === "string" ? settings.templateKpi1Label : "",
+      kpi1Value: typeof settings.templateKpi1Value === "string" ? settings.templateKpi1Value : "",
+      kpi2Label: typeof settings.templateKpi2Label === "string" ? settings.templateKpi2Label : "",
+      kpi2Value: typeof settings.templateKpi2Value === "string" ? settings.templateKpi2Value : "",
+      kpi3Label: typeof settings.templateKpi3Label === "string" ? settings.templateKpi3Label : "",
+      kpi3Value: typeof settings.templateKpi3Value === "string" ? settings.templateKpi3Value : "",
     },
     templateStyle: {
       primaryColor: typeof settings.templatePrimaryColor === "string" ? settings.templatePrimaryColor : null,
@@ -114,6 +120,7 @@ function playerScreenPayload(screen: any) {
       mediaFit: typeof settings.templateMediaFit === "string" ? settings.templateMediaFit : null,
       showWeather: typeof settings.templateShowWeather === "string" ? settings.templateShowWeather : null,
       showTicker: typeof settings.templateShowTicker === "string" ? settings.templateShowTicker : null,
+      showKpis: typeof settings.templateShowKpis === "string" ? settings.templateShowKpis : null,
       customCSS: typeof settings.templateCustomCSS === "string" ? settings.templateCustomCSS : null,
       qrUrl: typeof settings.templateQrUrl === "string" ? settings.templateQrUrl : null,
       logoUrl: typeof settings.templateLogoUrl === "string" ? settings.templateLogoUrl : null,

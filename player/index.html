@@ -134,11 +134,12 @@ body.template-signage.player-playing #purpose-overlay { display: none; }
 .tpl-subrow { position: relative; margin-top: 4vh; align-items: flex-start; }
 .tpl-qr { width: clamp(58px, 6vw, 94px); border-radius: calc(var(--tpl-radius) + 4px); background: #fff; }
 .tpl-subtitle { font-size: calc(clamp(0.82rem, 1.25vw, 1.6rem) * var(--tpl-scale)); line-height: 1.25; }
-.tpl-sidebar::after {
-  content: "NOW  NEXT  LIVE"; position: absolute; left: 3.6vw; right: 3.6vw; bottom: 4vh;
-  display: grid; grid-template-columns: repeat(3,1fr); gap: 0.6vw; color: rgba(15,23,42,0.48);
-  font-size: clamp(0.45rem, 0.58vw, 0.7rem); font-weight: 900; letter-spacing: 0.08em;
-}
+.tpl-kpis { position: relative; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 0.65vw; width: 100%; }
+.tpl-kpi { min-width: 0; border-radius: var(--tpl-radius); background: rgba(255,255,255,0.68); padding: 0.75vh 0.7vw; color: var(--tpl-text); box-shadow: inset 0 0 0 1px rgba(15,23,42,0.06); }
+.tpl-kpi-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: calc(clamp(0.42rem, 0.58vw, 0.72rem) * var(--tpl-scale)); font-weight: 900; letter-spacing: 0.08em; opacity: 0.6; text-transform: uppercase; }
+.tpl-kpi-value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 0.2vh; font-size: calc(clamp(0.7rem, 1vw, 1.25rem) * var(--tpl-scale)); font-weight: 950; letter-spacing: 0; }
+.tpl-sidebar .tpl-kpis { position: absolute; left: 3.6vw; right: 3.6vw; bottom: 3.4vh; width: auto; }
+.tpl-kpis-dark .tpl-kpi { background: rgba(255,255,255,0.12); color: #fff; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08); }
 .tpl-weather-right {
   justify-content: space-between; padding: 5vh 2.2vw;
   background: linear-gradient(180deg, var(--tpl-widget-bg), var(--tpl-accent)); border: 0;
@@ -150,10 +151,12 @@ body.template-signage.player-playing #purpose-overlay { display: none; }
 .tpl-center { position: relative; height: 100%; background: #020617; }
 .tpl-center-media { position: absolute; inset: 3vh 2vw 27%; border: 1px solid rgba(255,255,255,0.12); border-radius: calc(var(--tpl-radius) + 12px); }
 .tpl-center-bar {
-  position: absolute; left: 2vw; right: 2vw; bottom: 7%; display: grid; grid-template-columns: auto 1fr auto auto;
+  position: absolute; left: 2vw; right: 2vw; bottom: 7%; display: grid; grid-template-columns: auto minmax(0,1fr) minmax(0,0.9fr) auto;
+  gap: 1.2vw; align-items: center;
   border: 1px solid rgba(255,255,255,0.12); border-radius: calc(var(--tpl-radius) + 12px);
   background: rgba(255,255,255,0.11); backdrop-filter: blur(18px); padding: 2vh 2vw;
 }
+.tpl-center-bar .tpl-kpis { max-width: 24vw; }
 .tpl-center-headline { font-size: calc(clamp(1.1rem, 1.9vw, 2.4rem) * var(--tpl-scale)); }
 .tpl-center-widget { margin-left: 0; border-radius: 999px; background: var(--tpl-widget-bg); padding: 0.6em 0.9em; opacity: 1; }
 .tpl-hero-overlay { padding: 6vh 5vw 8vh; background: linear-gradient(0deg, rgba(0,0,0,0.88) 8%, rgba(0,0,0,0.48) 44%, transparent); }
@@ -162,6 +165,7 @@ body.template-signage.player-playing #purpose-overlay { display: none; }
 .tpl-hero-subrow { margin-top: 2.2vh; }
 .tpl-hero-qr { width: clamp(58px, 5vw, 86px); background: rgba(255,255,255,0.16); backdrop-filter: blur(12px); }
 .tpl-hero-sub { max-width: 38ch; font-weight: 650; }
+.tpl-hero-overlay .tpl-kpis { margin-top: 2.4vh; max-width: 34vw; }
 .tpl-hero-widget { top: 3vh; right: 3vw; border: 1px solid rgba(255,255,255,0.18); background: color-mix(in srgb, var(--tpl-widget-bg) 86%, transparent); }
 .tpl-ticker { border: 0; border-top: 1px solid rgba(15,23,42,0.12); }
 .tpl-ticker-logo { font-weight: 950; }
@@ -242,7 +246,11 @@ if ('serviceWorker' in navigator) {
   };
   var currentPurpose = 'other';
   var currentTemplate = 'full_bleed';
-  var currentTemplateText = { badge: '', headline: '', subtitle: '' };
+  var currentTemplateText = {
+    badge: '', headline: '', subtitle: '', qrText: '', weatherLocation: '',
+    temperature: '', ticker: '', logoText: '', kpi1Label: '', kpi1Value: '',
+    kpi2Label: '', kpi2Value: '', kpi3Label: '', kpi3Value: ''
+  };
   var currentTemplateStyle = {};
   var FONT_FAMILIES = {
     system: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
@@ -320,6 +328,12 @@ if ('serviceWorker' in navigator) {
       temperature: templateText && templateText.temperature ? String(templateText.temperature) : '',
       ticker: templateText && templateText.ticker ? String(templateText.ticker) : '',
       logoText: templateText && templateText.logoText ? String(templateText.logoText) : '',
+      kpi1Label: templateText && templateText.kpi1Label ? String(templateText.kpi1Label) : '',
+      kpi1Value: templateText && templateText.kpi1Value ? String(templateText.kpi1Value) : '',
+      kpi2Label: templateText && templateText.kpi2Label ? String(templateText.kpi2Label) : '',
+      kpi2Value: templateText && templateText.kpi2Value ? String(templateText.kpi2Value) : '',
+      kpi3Label: templateText && templateText.kpi3Label ? String(templateText.kpi3Label) : '',
+      kpi3Value: templateText && templateText.kpi3Value ? String(templateText.kpi3Value) : '',
     };
   }
   function applyTemplateStyle(templateStyle) {
@@ -833,7 +847,23 @@ if ('serviceWorker' in navigator) {
       temperature: currentTemplateText.temperature || '16°C',
       ticker: currentTemplateText.ticker || 'News ticker message goes here and can be edited for this screen',
       logoText: currentTemplateText.logoText || '▲',
+      kpi1Label: currentTemplateText.kpi1Label || 'Status',
+      kpi1Value: currentTemplateText.kpi1Value || 'On track',
+      kpi2Label: currentTemplateText.kpi2Label || 'Today',
+      kpi2Value: currentTemplateText.kpi2Value || '24',
+      kpi3Label: currentTemplateText.kpi3Label || 'Next',
+      kpi3Value: currentTemplateText.kpi3Value || '14:00',
     };
+  }
+
+  function kpiHtml(v, dark) {
+    if (currentTemplateStyle.showKpis === 'no') return '';
+    var cls = dark ? 'tpl-kpis tpl-kpis-dark' : 'tpl-kpis';
+    return '<div class="' + cls + '">' +
+      '<div class="tpl-kpi"><div class="tpl-kpi-label">' + escapeHtml(v.kpi1Label) + '</div><div class="tpl-kpi-value">' + escapeHtml(v.kpi1Value) + '</div></div>' +
+      '<div class="tpl-kpi"><div class="tpl-kpi-label">' + escapeHtml(v.kpi2Label) + '</div><div class="tpl-kpi-value">' + escapeHtml(v.kpi2Value) + '</div></div>' +
+      '<div class="tpl-kpi"><div class="tpl-kpi-label">' + escapeHtml(v.kpi3Label) + '</div><div class="tpl-kpi-value">' + escapeHtml(v.kpi3Value) + '</div></div>' +
+      '</div>';
   }
 
   function appendTemplateLayout(div, item, mediaEl) {
@@ -856,7 +886,7 @@ if ('serviceWorker' in navigator) {
       m.appendChild(mediaEl);
       var s = document.createElement('div');
       s.className = 'tpl-sidebar';
-      s.innerHTML = '<div class="tpl-badge">' + escapeHtml(v.badge) + '</div><div class="tpl-headline">' + escapeHtml(v.headline) + '</div><div class="tpl-subrow"><div class="tpl-qr">' + qrHtml + '</div><div class="tpl-subtitle">' + escapeHtml(v.subtitle) + '</div></div>';
+      s.innerHTML = '<div class="tpl-badge">' + escapeHtml(v.badge) + '</div><div class="tpl-headline">' + escapeHtml(v.headline) + '</div><div class="tpl-subrow"><div class="tpl-qr">' + qrHtml + '</div><div class="tpl-subtitle">' + escapeHtml(v.subtitle) + '</div></div>' + kpiHtml(v, false);
       if (currentTemplate === 'media_right') { grid.appendChild(s); grid.appendChild(m); } else { grid.appendChild(m); grid.appendChild(s); }
       if (showWeather) {
         var w = document.createElement('div');
@@ -873,7 +903,7 @@ if ('serviceWorker' in navigator) {
       cm.appendChild(mediaEl);
       var cb = document.createElement('div');
       cb.className = 'tpl-center-bar';
-      cb.innerHTML = '<span class="tpl-center-badge">' + escapeHtml(v.badge) + '</span><span class="tpl-center-headline">' + escapeHtml(v.headline) + '</span><span class="tpl-center-sub">' + escapeHtml(v.subtitle) + '</span><span class="tpl-center-qr">' + qrHtml + '</span>' + (showWeather ? '<span class="tpl-center-widget">☁ ' + escapeHtml(v.temperature) + ' ' + escapeHtml(v.weatherLocation) + '</span>' : '');
+      cb.innerHTML = '<span class="tpl-center-badge">' + escapeHtml(v.badge) + '</span><span class="tpl-center-headline">' + escapeHtml(v.headline) + '</span><span class="tpl-center-sub">' + escapeHtml(v.subtitle) + '</span>' + kpiHtml(v, true) + '<span class="tpl-center-qr">' + qrHtml + '</span>' + (showWeather ? '<span class="tpl-center-widget">☁ ' + escapeHtml(v.temperature) + ' ' + escapeHtml(v.weatherLocation) + '</span>' : '');
       c.appendChild(cm);
       c.appendChild(cb);
       div.appendChild(c);
@@ -885,7 +915,7 @@ if ('serviceWorker' in navigator) {
       hb.appendChild(mediaEl);
       var ho = document.createElement('div');
       ho.className = 'tpl-hero-overlay';
-      ho.innerHTML = '<div class="tpl-hero-badge">' + escapeHtml(v.badge) + '</div><div class="tpl-hero-headline">' + escapeHtml(v.headline) + '</div><div class="tpl-hero-subrow"><div class="tpl-hero-qr">' + qrHtml + '</div><div class="tpl-hero-sub">' + escapeHtml(v.subtitle) + '</div></div>';
+      ho.innerHTML = '<div class="tpl-hero-badge">' + escapeHtml(v.badge) + '</div><div class="tpl-hero-headline">' + escapeHtml(v.headline) + '</div><div class="tpl-hero-subrow"><div class="tpl-hero-qr">' + qrHtml + '</div><div class="tpl-hero-sub">' + escapeHtml(v.subtitle) + '</div></div>' + kpiHtml(v, true);
       h.appendChild(hb);
       h.appendChild(ho);
       if (showWeather) {

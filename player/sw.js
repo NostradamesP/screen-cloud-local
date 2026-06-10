@@ -1,4 +1,4 @@
-const CACHE_NAME = "signage-player-v9";
+const CACHE_NAME = "signage-player-v10";
 const ASSETS = ["/player/", "/player/index.html"];
 
 self.addEventListener("install", (event) => {

@@ -158,6 +158,13 @@ export function useScreens() {
       templateGradientColor1,
       templateGradientColor2,
       templateGradientDirection,
+      templateShowKpis,
+      templateKpi1Label,
+      templateKpi1Value,
+      templateKpi2Label,
+      templateKpi2Value,
+      templateKpi3Label,
+      templateKpi3Value,
       ...screenForm
     } = form;
     const payload: any = {
@@ -194,6 +201,13 @@ export function useScreens() {
         templateGradientColor1,
         templateGradientColor2,
         templateGradientDirection,
+        templateShowKpis,
+        templateKpi1Label,
+        templateKpi1Value,
+        templateKpi2Label,
+        templateKpi2Value,
+        templateKpi3Label,
+        templateKpi3Value,
       },
     };
     try {
@@ -260,6 +274,13 @@ export function useScreens() {
       templateGradientColor1: screen.settings?.templateGradientColor1 ?? "",
       templateGradientColor2: screen.settings?.templateGradientColor2 ?? "",
       templateGradientDirection: screen.settings?.templateGradientDirection ?? "to_bottom",
+      templateShowKpis: screen.settings?.templateShowKpis ?? "yes",
+      templateKpi1Label: screen.settings?.templateKpi1Label ?? "Status",
+      templateKpi1Value: screen.settings?.templateKpi1Value ?? "On track",
+      templateKpi2Label: screen.settings?.templateKpi2Label ?? "Today",
+      templateKpi2Value: screen.settings?.templateKpi2Value ?? "24",
+      templateKpi3Label: screen.settings?.templateKpi3Label ?? "Next",
+      templateKpi3Value: screen.settings?.templateKpi3Value ?? "14:00",
     });
     setEditing(screen);
     setShowForm(true);

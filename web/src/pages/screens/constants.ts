@@ -16,6 +16,7 @@ import {
   ShoppingBag,
   UtensilsCrossed,
 } from "lucide-react";
+import { TemplateZone } from "./types";
 
 export const CONTENT_ICONS: Record<string, any> = {
   video: FileVideo,
@@ -90,11 +91,23 @@ export const PURPOSE_OPTIONS = [
 ];
 
 export const VIDEO_TEMPLATES = [
-  { key: "full_bleed", label: "Canvas", description: "Media limpio a pantalla completa." },
-  { key: "media_left", label: "Command", description: "Media, mensaje principal y widgets operativos." },
-  { key: "media_right", label: "Spotlight", description: "Mensaje editorial con media destacada." },
-  { key: "hero_overlay", label: "Market", description: "Promoción visual con banda de acción." },
-  { key: "center_stage", label: "Pulse", description: "Dashboard compacto con media y estado." },
+  { key: "full_bleed", label: "Canvas", description: "Media limpio a pantalla completa.", accent: "#111827" },
+  { key: "media_left", label: "Command", description: "Media, mensaje principal y widgets operativos.", accent: "#2563eb" },
+  { key: "media_right", label: "Spotlight", description: "Mensaje editorial con media destacada.", accent: "#0d9488" },
+  { key: "hero_overlay", label: "Market", description: "Promoción visual con banda de acción.", accent: "#db2777" },
+  { key: "center_stage", label: "Pulse", description: "Dashboard compacto para estado, agenda y alertas.", accent: "#7c3aed" },
+];
+
+export const TEMPLATE_ZONES: Array<{ key: TemplateZone; label: string; description: string }> = [
+  { key: "media", label: "Media", description: "Video, imagen, web o dashboard asignado." },
+  { key: "badge", label: "Badge", description: "Etiqueta superior corta." },
+  { key: "headline", label: "Título", description: "Mensaje principal de lectura rápida." },
+  { key: "subtitle", label: "Subtítulo", description: "Contexto o descripción secundaria." },
+  { key: "qr", label: "QR", description: "Texto o URL para llamada a acción." },
+  { key: "weather", label: "Clima", description: "Widget compacto de clima o estado." },
+  { key: "ticker", label: "Ticker", description: "Mensaje inferior en movimiento." },
+  { key: "logo", label: "Logo", description: "Marca o símbolo del ticker." },
+  { key: "kpiStrip", label: "KPIs", description: "Tres datos rápidos para operaciones o agenda." },
 ];
 
 export const FONT_FAMILIES: Record<string, string> = {
