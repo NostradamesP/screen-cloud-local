@@ -72,25 +72,47 @@ export const api = {
   media: {
     list: () => request<any[]>("/media"),
     delete: (id: string) => request<void>(`/media/${id}`, { method: "DELETE" }),
-    upload: (file: File) => {
+    stats: () => request<{ disk: { used: number; available: number; total: number }; uploads: { total: number; org: number; files: number } }>("/media/stats"),
+    orphans: () => request<Array<{ orgId: string; filename: string; size: number }>>("/media/orphans"),
+    cleanupOrphans: () => request<{ deleted: number; totalSize: number }>("/media/cleanup-orphans", { method: "POST", body: "{}" }),
+    upload: (file: File, onProgress?: (percent: number) => void): Promise<any> => {
       const token = getToken();
       const formData = new FormData();
       formData.append("file", file);
-      return fetch(`${API_BASE}/media/upload`, {
-        method: "POST",
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        body: formData,
-      }).then(async (res) => {
-        if (res.status === 401) {
-          localStorage.removeItem("token");
-          window.location.href = "/login";
-          throw new Error("Unauthorized");
-        }
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({ error: "Upload failed" }));
-          throw new Error(err.error ?? "Upload failed");
-        }
-        return res.json();
+      return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", `${API_BASE}/media/upload`);
+        if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable && onProgress) {
+            onProgress(Math.round((e.loaded / e.total) * 100));
+          }
+        };
+        xhr.onload = () => {
+          if (xhr.status === 401) {
+            localStorage.removeItem("token");
+            window.location.href = "/login";
+            reject(new Error("Unauthorized"));
+            return;
+          }
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              resolve(JSON.parse(xhr.responseText));
+            } catch {
+              reject(new Error("Invalid response"));
+            }
+          } else {
+            try {
+              const err = JSON.parse(xhr.responseText);
+              reject(new Error(err.error ?? "Upload failed"));
+            } catch {
+              reject(new Error("Upload failed"));
+            }
+          }
+        };
+        xhr.onerror = () => reject(new Error("Network error"));
+        xhr.onabort = () => reject(new Error("Upload cancelled"));
+        xhr.send(formData);
       });
     },
   },

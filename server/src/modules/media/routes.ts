@@ -4,7 +4,7 @@ import { mediaAssets } from "../../db/schema";
 import { and, eq } from "drizzle-orm";
 import { v4 as uuid } from "uuid";
 import path from "path";
-import { saveFile, deleteFile, getFileStream, getFileSize, getContentType } from "../../storage";
+import { saveFile, deleteFile, getFileStream, getFileSize, getContentType, getDiskUsage, getUploadDirSize, listAllFiles } from "../../storage";
 
 const ALLOWED_TYPES = [
   "image/jpeg", "image/png", "image/gif", "image/webp",
@@ -84,6 +84,58 @@ export async function mediaRoutes(fastify: FastifyInstance) {
     } catch {
       return reply.status(404).send({ error: "File not found" });
     }
+  });
+
+  fastify.get("/api/media/stats", {
+    preHandler: [fastify.requireRole("admin")],
+  }, async (request: FastifyRequest) => {
+    const { orgId } = request.user;
+    const [diskUsage, uploadDirSize, allFiles] = await Promise.all([
+      getDiskUsage(),
+      getUploadDirSize(),
+      listAllFiles(),
+    ]);
+    const orgFiles = allFiles.filter(f => f.orgId === orgId);
+    const orgSize = orgFiles.reduce((sum, f) => sum + f.size, 0);
+    return {
+      disk: diskUsage,
+      uploads: {
+        total: uploadDirSize,
+        org: orgSize,
+        files: orgFiles.length,
+      },
+    };
+  });
+
+  fastify.get("/api/media/orphans", {
+    preHandler: [fastify.requireRole("admin")],
+  }, async (request: FastifyRequest) => {
+    const { orgId } = request.user;
+    const allFiles = await listAllFiles();
+    const orgFiles = allFiles.filter(f => f.orgId === orgId);
+    const dbAssets = await db.select({ filename: mediaAssets.filename }).from(mediaAssets)
+      .where(eq(mediaAssets.organizationId, orgId));
+    const dbFilenames = new Set(dbAssets.map(a => a.filename));
+    const orphans = orgFiles.filter(f => !dbFilenames.has(f.filename));
+    return orphans;
+  });
+
+  fastify.post("/api/media/cleanup-orphans", {
+    preHandler: [fastify.requireRole("admin")],
+  }, async (request: FastifyRequest) => {
+    const { orgId } = request.user;
+    const allFiles = await listAllFiles();
+    const orgFiles = allFiles.filter(f => f.orgId === orgId);
+    const dbAssets = await db.select({ filename: mediaAssets.filename }).from(mediaAssets)
+      .where(eq(mediaAssets.organizationId, orgId));
+    const dbFilenames = new Set(dbAssets.map(a => a.filename));
+    const orphans = orgFiles.filter(f => !dbFilenames.has(f.filename));
+    let deleted = 0;
+    for (const orphan of orphans) {
+      await deleteFile(orphan.orgId, orphan.filename);
+      deleted++;
+    }
+    return { deleted, totalSize: orphans.reduce((sum, f) => sum + f.size, 0) };
   });
 }
 

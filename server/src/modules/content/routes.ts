@@ -5,6 +5,7 @@ import { contentItems } from "../../db/schema";
 import { eq, and } from "drizzle-orm";
 import { logAudit } from "../../lib/audit";
 import { cacheDel } from "../../lib/cache";
+import { deleteFile } from "../../storage";
 
 const createContentSchema = z.object({
   type: z.enum(["webpage", "image", "video", "dashboard", "rss", "html"]),
@@ -22,6 +23,12 @@ const createContentSchema = z.object({
     showControls: z.boolean().optional(),
   }).optional(),
 });
+
+function parseFilePath(filePath: string): { orgId: string; filename: string } | null {
+  const match = filePath.match(/^\/api\/public\/file\/([^/]+)\/([^/]+)$/);
+  if (!match) return null;
+  return { orgId: match[1], filename: match[2] };
+}
 
 export async function contentRoutes(fastify: FastifyInstance) {
   fastify.addHook("preHandler", fastify.authenticate);
@@ -92,6 +99,19 @@ export async function contentRoutes(fastify: FastifyInstance) {
       .where(and(eq(contentItems.id, id), eq(contentItems.organizationId, orgId)))
       .returning();
     if (!deleted) return reply.status(404).send({ error: "Content not found" });
+    
+    if (deleted.filePath) {
+      const parsed = parseFilePath(deleted.filePath);
+      if (parsed) {
+        const [otherContent] = await db.select().from(contentItems)
+          .where(and(eq(contentItems.filePath, deleted.filePath), eq(contentItems.organizationId, orgId)))
+          .limit(1);
+        if (!otherContent) {
+          await deleteFile(parsed.orgId, parsed.filename);
+        }
+      }
+    }
+    
     logAudit({ orgId, userId: request.user.userId, action: "delete", entityType: "content", entityId: id });
     cacheDel("player:*");
     fastify.wsNotifier.notifyAllScreens({ type: "content_update" });

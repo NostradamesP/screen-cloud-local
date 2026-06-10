@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   LogOut,
   Monitor,
+  Image,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import clsx from "clsx";
@@ -12,6 +13,7 @@ const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard" },
   { to: "/screens", icon: Monitor, label: "Pantallas" },
   { to: "/content", icon: FolderKanban, label: "Contenido" },
+  { to: "/media", icon: Image, label: "Biblioteca" },
 ];
 
 export default function Sidebar() {

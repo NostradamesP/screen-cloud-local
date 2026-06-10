@@ -10,11 +10,36 @@ const connections = new Map<string, Set<WebSocket>>();
 export function setupWebSocket(fastify: FastifyInstance) {
   fastify.get("/ws/screen/:screenId", { websocket: true }, (socket, request) => {
     const { screenId } = request.params as { screenId: string };
+    const query = request.query as { token?: string };
+    
+    if (query.token) {
+      try {
+        const decoded = (fastify.jwt as any).verify(query.token) as { screenId: string; orgId: string; type: string };
+        if (decoded.type !== "screen" || decoded.screenId !== screenId) {
+          socket.close(4001, "Invalid token");
+          return;
+        }
+      } catch {
+        socket.close(4001, "Invalid token");
+        return;
+      }
+    }
+    
     if (!connections.has(screenId)) {
       connections.set(screenId, new Set());
     }
     connections.get(screenId)!.add(socket);
     console.log(`Screen ${screenId} connected via WS`);
+
+    const pingInterval = setInterval(() => {
+      try {
+        if (socket.readyState === 1) {
+          socket.ping();
+        }
+      } catch {
+        clearInterval(pingInterval);
+      }
+    }, 30000);
 
     socket.on("message", (data: string) => {
       try {
@@ -28,6 +53,7 @@ export function setupWebSocket(fastify: FastifyInstance) {
     });
 
     socket.on("close", () => {
+      clearInterval(pingInterval);
       connections.get(screenId)?.delete(socket);
       if (connections.get(screenId)?.size === 0) {
         connections.delete(screenId);

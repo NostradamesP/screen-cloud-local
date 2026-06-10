@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { api } from "@/lib/api";
 import { useConfirm } from "@/hooks/useConfirm";
 import { Plus, Pencil, Trash2, Upload, FileVideo, FileImage, Send, Eye } from "lucide-react";
@@ -13,6 +13,7 @@ const CONTENT_TYPES: Record<string, string> = {
 };
 
 const FILE_TYPES = ["image", "video"];
+const MAX_FILE_SIZE = 500 * 1024 * 1024;
 
 export default function Content() {
   const { confirm, dialog } = useConfirm();
@@ -22,6 +23,8 @@ export default function Content() {
   const [editing, setEditing] = useState<any>(null);
   const [form, setForm] = useState<any>({ type: "webpage", title: "", url: "", duration: 10, expiresAt: "", filePath: "", mimeType: "" });
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [dragOver, setDragOver] = useState(false);
   const [showMediaPicker, setShowMediaPicker] = useState(false);
   const [tags, setTags] = useState<any[]>([]);
   const [contentTags, setContentTags] = useState<Record<string, string[]>>({});
@@ -109,10 +112,20 @@ export default function Content() {
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    await uploadFile(file);
+    e.target.value = "";
+  };
+
+  const uploadFile = async (file: File) => {
+    if (file.size > MAX_FILE_SIZE) {
+      setError(`El archivo excede el límite de 500 MB (${(file.size / 1024 / 1024).toFixed(1)} MB)`);
+      return;
+    }
     setUploading(true);
+    setUploadProgress(0);
+    setError("");
     try {
-      setError("");
-      const asset = await api.media.upload(file);
+      const asset = await api.media.upload(file, setUploadProgress);
       setForm({
         ...form,
         filePath: asset.url,
@@ -124,9 +137,23 @@ export default function Content() {
       setError(err.message || "No se pudo subir el archivo.");
     } finally {
       setUploading(false);
-      e.target.value = "";
+      setUploadProgress(0);
     }
   };
+
+  const handleDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (file) await uploadFile(file);
+  }, [form]);
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(true);
+  };
+
+  const handleDragLeave = () => setDragOver(false);
 
   const selectMedia = (asset: any) => {
     setForm({
@@ -187,16 +214,45 @@ export default function Content() {
                       <button type="button" onClick={() => setShowMediaPicker(true)} className="text-xs text-blue-600 hover:underline">Cambiar</button>
                       <button type="button" onClick={() => setForm({ ...form, filePath: "", mimeType: "" })} className="text-xs text-red-500 hover:underline">Quitar</button>
                     </div>
+                  ) : uploading ? (
+                    <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-blue-700">Subiendo archivo...</span>
+                        <span className="text-sm text-blue-600">{uploadProgress}%</span>
+                      </div>
+                      <div className="h-2 bg-blue-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-blue-600 transition-all duration-200"
+                          style={{ width: `${uploadProgress}%` }}
+                        />
+                      </div>
+                    </div>
                   ) : (
-                    <div className="flex gap-2">
-                      <label className="btn-secondary cursor-pointer flex items-center gap-2">
-                        <Upload className="h-4 w-4" />
-                        {uploading ? "Subiendo..." : "Subir archivo"}
-                        <input type="file" className="hidden" accept="image/*,video/*" onChange={handleFileUpload} disabled={uploading} />
-                      </label>
-                      <button type="button" onClick={() => setShowMediaPicker(true)} className="btn-secondary">
-                        Biblioteca
-                      </button>
+                    <div
+                      onDrop={handleDrop}
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      className={`rounded-lg border-2 border-dashed p-4 transition-all ${
+                        dragOver ? "border-brand-500 bg-brand-50" : "border-gray-200 bg-gray-50"
+                      }`}
+                    >
+                      <div className="flex flex-col items-center gap-2">
+                        <Upload className={`h-6 w-6 ${dragOver ? "text-brand-600" : "text-gray-400"}`} />
+                        <p className="text-sm text-gray-600">
+                          <span className="font-medium">Arrastra un archivo</span> o
+                        </p>
+                        <div className="flex gap-2">
+                          <label className="btn-secondary cursor-pointer flex items-center gap-2 text-sm">
+                            <Upload className="h-4 w-4" />
+                            Seleccionar archivo
+                            <input type="file" className="hidden" accept="image/*,video/*" onChange={handleFileUpload} disabled={uploading} />
+                          </label>
+                          <button type="button" onClick={() => setShowMediaPicker(true)} className="btn-secondary text-sm">
+                            Biblioteca
+                          </button>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-1">JPG, PNG, GIF, WebP, MP4, WebM · Máx 500 MB</p>
+                      </div>
                     </div>
                   )}
                   {form.filePath && form.mimeType?.startsWith("image") && (

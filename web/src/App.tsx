@@ -5,6 +5,7 @@ import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import Content from "@/pages/Content";
 import ContentHub from "@/pages/ContentHub";
+import MediaLibrary from "@/pages/MediaLibrary";
 import Playlists from "@/pages/Playlists";
 import Schedules from "@/pages/Schedules";
 import Screens from "@/pages/Screens";
@@ -38,6 +39,7 @@ export default function App() {
           <Route index element={<Dashboard />} />
           <Route path="/content" element={<ContentHub />} />
           <Route path="/content/library" element={<Content />} />
+          <Route path="/media" element={<MediaLibrary />} />
           <Route path="/playlists" element={<Playlists />} />
           <Route path="/schedules" element={<Schedules />} />
           <Route path="/screens" element={<Screens />} />

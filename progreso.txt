@@ -48,6 +48,70 @@
 - Animaciones CSS custom (fadeIn, slideDown, scaleIn) en index.css
 - Rediseño completo Screens.tsx: cards con área de contenido clickeable, modal picker inline, sin alert()/confirm()
 
+## Etapa 4 — Media Upload & Library (Completada)
+- Página dedicada `MediaLibrary.tsx` con gestión completa de archivos
+- Drag & drop para subir archivos (imágenes y videos)
+- Barra de progreso de upload con XMLHttpRequest (0-100%)
+- Validación de tamaño en cliente (máx 500 MB)
+- Validación de tipos MIME (JPG, PNG, GIF, WebP, MP4, WebM, OGG)
+- Grid responsive con thumbnails y metadata (nombre, tamaño)
+- Botón eliminar con confirmación en cada archivo
+- Contador total de archivos y espacio usado
+- Mensajes de éxito/error con animaciones
+- Content.tsx mejorado: zona de drag & drop, progress bar inline, validación
+- Backend: limpieza automática de archivos huérfanos al borrar contenido
+- Parser de filePath para extraer orgId/filename del formato `/api/public/file/{orgId}/{filename}`
+- Verificación de uso compartida antes de eliminar archivo físico
+- Ruta `/media` agregada en App.tsx y navegación en Sidebar
+
+## Etapa 5 — Player TV Fixes (Completada)
+- Video stall detection: timer verifica cada 2s que currentTime avanza, después de 3 stalls consecutivos salta al siguiente item
+- WebSocket authentication: token JWT enviado como query parameter `?token=`, validado en server contra screenId
+- Server-side ping/pong: intervalo de 30s envía ping para detectar conexiones muertas, cleanup automático en close
+- Exponential backoff: reconnect delay incrementa de 5s → 10s → 20s → 40s → 60s (máx), resetea a 5s en conexión exitosa
+- Service Worker v9: estrategia stale-while-revalidate para videos (sirve cache inmediatamente, actualiza en background)
+- Cache-first mantenido para imágenes (cambian menos frecuentemente)
+- Version bump SW v8→v9 para auto-actualización en TVs existentes
+
+## Etapa 6 — Storage Hardening (Completada)
+- Monitoreo de espacio en disco: `getDiskUsage()` usa `fs.statfs()` para obtener used/available/total
+- Tamaño de uploads: `getUploadDirSize()` calcula espacio total usado en directorio de uploads
+- Listado de archivos: `listAllFiles()` retorna todos los archivos con orgId, filename y size
+- Endpoint `GET /api/media/stats`: estadísticas de disco y uploads por organización (solo admin)
+- Endpoint `GET /api/media/orphans`: detecta archivos en disco sin registro en DB (solo admin)
+- Endpoint `POST /api/media/cleanup-orphans`: elimina archivos huérfanos del disco (solo admin)
+- MediaLibrary.tsx: dashboard con 3 cards (disco usado, archivos en org, espacio disponible)
+- Botón de limpieza de huérfanos con confirmación y contador de archivos
+- Bind mount configurable: `UPLOAD_DIR` env var ya soporta paths absolutos para NAS/disco externo
+- Cuotas por organización: stats endpoint muestra uso por org vs total del sistema
+
+## Etapa 7 — Cloudflare R2 Storage Provider (Completada)
+- Instalación de `@aws-sdk/client-s3` y `@aws-sdk/s3-request-presigner` para compatibilidad S3
+- Interfaz `StorageProvider` con métodos: saveFile, getFileStream, deleteFile, getFileSize, getContentType, getFileUrl
+- `LocalStorageProvider`: refactor del código original, mantiene compatibilidad con filesystem local
+- `R2StorageProvider`: implementación completa usando Cloudflare R2 (S3-compatible API)
+- Factory function `getStorage()`: selecciona provider basado en `STORAGE_PROVIDER` env var (local|r2)
+- Nuevas env vars: `STORAGE_PROVIDER`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_PUBLIC_URL`
+- URLs configurables: R2 soporta `R2_PUBLIC_URL` para bucket público con CDN, fallback a proxy via API
+- Range requests: R2 provider soporta `Range` header para streaming de video parcial
+- Compatibilidad backward: media routes funcionan sin cambios, solo llaman a `getStorage()`
+- Validación de config: error claro si R2 provider seleccionado sin credenciales completas
+
+## Etapa 8 — Screens.tsx Refactor (Completada)
+- Creado directorio `web/src/pages/screens/` para componentes modulares
+- Extraído `constants.ts`: CONTENT_ICONS, PURPOSE_ICONS, PURPOSE_LABELS, PURPOSE_OPTIONS, VIDEO_TEMPLATES, FONT_FAMILIES, CORNER_RADIUS
+- Extraído `types.ts`: ScreenForm (35 campos), Toast, emptyForm, PURPOSE_TEMPLATE_PRESETS
+- Creado `useScreens.ts` hook: toda la lógica de estado, handlers y API calls
+- Creado `TemplatePreview.tsx`: renderizado de preview de templates (5 layouts)
+- Creado `ScreenFormPanel.tsx`: formulario completo de crear/editar pantalla
+- Creado `ScreenCard.tsx`: cards individuales con estado, playback y acciones
+- Creado `ScreenDetailPanel.tsx`: panel de detalle con metadata y acciones
+- Creado `ContentPickerModal.tsx`: modal de selección de contenido idle
+- Creado `CustomTemplateEditor.tsx`: editor modal de template custom
+- **Resultado**: Screens.tsx reducido de 1,888 líneas a 372 líneas (80% reducción)
+- Arquitectura: orchestrator pattern con componentes especializados
+- Build exitoso: TypeScript + Vite sin errores
+
 ## Próximos pasos
 - Categorías de pantalla tipo ScreenCloud (templates por industria)
 - Filtro por categoría en Pantallas

@@ -32,6 +32,17 @@ export const config = {
     dir: process.env.UPLOAD_DIR ?? path.join(process.cwd(), "uploads"),
   },
 
+  storage: {
+    provider: (process.env.STORAGE_PROVIDER ?? "local") as "local" | "r2",
+    r2: {
+      accountId: process.env.R2_ACCOUNT_ID ?? "",
+      accessKeyId: process.env.R2_ACCESS_KEY_ID ?? "",
+      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY ?? "",
+      bucketName: process.env.R2_BUCKET_NAME ?? "",
+      publicUrl: process.env.R2_PUBLIC_URL,
+    },
+  },
+
   jwt: {
     secret: requiredEnv("JWT_SECRET", "dev-secret-change-me"),
     expiresIn: process.env.JWT_EXPIRES_IN ?? "7d",

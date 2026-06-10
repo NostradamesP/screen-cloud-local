@@ -1,75 +1,81 @@
-import fs from "fs/promises";
-import { createReadStream, existsSync, mkdirSync } from "fs";
-import path from "path";
 import { config } from "../config";
+import { StorageProvider } from "./provider";
+import { LocalStorageProvider } from "./local";
+import { R2StorageProvider } from "./r2";
 
-const SAFE_ID = /^[a-zA-Z0-9-]+$/;
-const SAFE_FILENAME = /^[a-f0-9-]+\.(jpg|jpeg|png|gif|webp|mp4|webm|ogg)$/i;
+export type { StorageProvider } from "./provider";
+export { LocalStorageProvider } from "./local";
+export { R2StorageProvider } from "./r2";
 
-function ensureDir(dir: string) {
-  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-}
+let storageInstance: StorageProvider | null = null;
 
-function assertSafePathPart(value: string, pattern: RegExp, label: string) {
-  if (!pattern.test(value) || value.includes("..") || value.includes("/") || value.includes("\\")) {
-    throw new Error(`Invalid ${label}`);
+export function getStorage(): StorageProvider {
+  if (!storageInstance) {
+    if (config.storage.provider === "r2") {
+      const r2Config = config.storage.r2;
+      if (!r2Config.accountId || !r2Config.accessKeyId || !r2Config.secretAccessKey || !r2Config.bucketName) {
+        throw new Error("R2 storage provider requires: R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME");
+      }
+      storageInstance = new R2StorageProvider(r2Config);
+    } else {
+      storageInstance = new LocalStorageProvider();
+    }
   }
-}
-
-function mimeFromExt(filename: string): string {
-  const ext = path.extname(filename).toLowerCase();
-  const map: Record<string, string> = {
-    ".jpg": "image/jpeg",
-    ".jpeg": "image/jpeg",
-    ".png": "image/png",
-    ".gif": "image/gif",
-    ".webp": "image/webp",
-    ".mp4": "video/mp4",
-    ".webm": "video/webm",
-    ".ogg": "video/ogg",
-  };
-  return map[ext] || "application/octet-stream";
+  return storageInstance;
 }
 
 export async function saveFile(orgId: string, filename: string, buffer: Buffer): Promise<void> {
-  assertSafePathPart(orgId, SAFE_ID, "organization id");
-  assertSafePathPart(filename, SAFE_FILENAME, "filename");
-  const dir = path.join(config.upload.dir, orgId);
-  ensureDir(dir);
-  await fs.writeFile(path.join(dir, filename), buffer);
-}
-
-export function getFilePath(orgId: string, filename: string): string {
-  assertSafePathPart(orgId, SAFE_ID, "organization id");
-  assertSafePathPart(filename, SAFE_FILENAME, "filename");
-  const resolved = path.resolve(config.upload.dir, orgId, filename);
-  const root = path.resolve(config.upload.dir);
-  if (!resolved.startsWith(root + path.sep)) {
-    throw new Error("Invalid file path");
-  }
-  return resolved;
-}
-
-export async function deleteFile(orgId: string, filename: string): Promise<void> {
-  try {
-    await fs.unlink(getFilePath(orgId, filename));
-  } catch {}
+  return getStorage().saveFile(orgId, filename, buffer);
 }
 
 export function getFileStream(orgId: string, filename: string, range?: { start: number; end: number }) {
-  return createReadStream(getFilePath(orgId, filename), range);
+  return getStorage().getFileStream(orgId, filename, range);
+}
+
+export async function deleteFile(orgId: string, filename: string): Promise<void> {
+  return getStorage().deleteFile(orgId, filename);
 }
 
 export async function getFileSize(orgId: string, filename: string): Promise<number> {
-  const stat = await fs.stat(getFilePath(orgId, filename));
-  return stat.size;
+  return getStorage().getFileSize(orgId, filename);
 }
 
 export function getContentType(filename: string): string {
-  return mimeFromExt(filename);
+  return getStorage().getContentType(filename);
+}
+
+export function getFileUrl(orgId: string, filename: string): string {
+  return getStorage().getFileUrl(orgId, filename);
+}
+
+export async function getDiskUsage(): Promise<{ used: number; available: number; total: number }> {
+  const storage = getStorage();
+  if (storage instanceof LocalStorageProvider) {
+    return storage.getDiskUsage();
+  }
+  return { used: 0, available: 0, total: 0 };
+}
+
+export async function getUploadDirSize(): Promise<number> {
+  const storage = getStorage();
+  if (storage instanceof LocalStorageProvider) {
+    return storage.getUploadDirSize();
+  }
+  return 0;
+}
+
+export async function listAllFiles(): Promise<Array<{ orgId: string; filename: string; size: number }>> {
+  const storage = getStorage();
+  if (storage instanceof LocalStorageProvider) {
+    return storage.listAllFiles();
+  }
+  return [];
 }
 
 export function ensureUploadDir(): string {
-  ensureDir(config.upload.dir);
-  return config.upload.dir;
+  const storage = getStorage();
+  if (storage instanceof LocalStorageProvider) {
+    return config.upload.dir;
+  }
+  return "";
 }

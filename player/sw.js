@@ -1,4 +1,4 @@
-const CACHE_NAME = "signage-player-v8";
+const CACHE_NAME = "signage-player-v9";
 const ASSETS = ["/player/", "/player/index.html"];
 
 self.addEventListener("install", (event) => {
@@ -29,8 +29,13 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (event.request.destination === "image" || event.request.destination === "video") {
+  if (event.request.destination === "image") {
     event.respondWith(cacheFirst(event.request));
+    return;
+  }
+
+  if (event.request.destination === "video") {
+    event.respondWith(staleWhileRevalidate(event.request));
     return;
   }
 });
@@ -48,6 +53,27 @@ async function cacheFirst(request) {
   } catch {
     return new Response("Offline", { status: 503 });
   }
+}
+
+async function staleWhileRevalidate(request) {
+  const cache = await caches.open(CACHE_NAME);
+  const cached = await cache.match(request);
+  
+  const fetchPromise = fetch(request).then((response) => {
+    if (response.ok) {
+      cache.put(request, response.clone());
+    }
+    return response;
+  }).catch(() => null);
+  
+  if (cached) {
+    fetchPromise.catch(() => {});
+    return cached;
+  }
+  
+  const response = await fetchPromise;
+  if (response) return response;
+  return new Response("Offline", { status: 503 });
 }
 
 async function networkFirst(request) {
