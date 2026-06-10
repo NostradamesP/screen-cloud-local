@@ -35,12 +35,12 @@ services:
       NODE_ENV: production
       DATABASE_URL: postgres://signage:signage@postgres:5432/signage
       REDIS_URL: redis://redis:6379
-      UPLOAD_DIR: /data/uploads
-      JWT_SECRET: local-dev-secret-for-docker-only
+      UPLOAD_DIR: /app/server/uploads
+      JWT_SECRET: local-docker-production-secret-key
       JWT_EXPIRES_IN: 7d
       DEFAULT_ORG_NAME: Mi Empresa
     volumes:
-      - uploads:/data/uploads
+      - uploads:/app/server/uploads
     depends_on:
       postgres:
         condition: service_healthy

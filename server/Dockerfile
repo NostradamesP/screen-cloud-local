@@ -7,7 +7,7 @@ RUN npm ci --omit=dev
 
 FROM base AS build
 WORKDIR /app/server
-COPY server/package.json server/package-lock.json server/tsconfig.json ./
+COPY server/package.json server/package-lock.json server/tsconfig.json server/postbuild.js ./
 COPY server/src ./src
 RUN npm ci && npm run build
 
