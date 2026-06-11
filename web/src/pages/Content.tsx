@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { api } from "@/lib/api";
 import { useConfirm } from "@/hooks/useConfirm";
-import { Plus, Pencil, Trash2, Upload, FileVideo, FileImage, Send, Eye } from "lucide-react";
+import { Plus, Pencil, Trash2, Upload, FileVideo, FileImage, Send, Eye, Globe, Rss, Code, LayoutDashboard, ImageOff } from "lucide-react";
 
 const CONTENT_TYPES: Record<string, string> = {
   webpage: "Página Web",
@@ -14,6 +14,80 @@ const CONTENT_TYPES: Record<string, string> = {
 
 const FILE_TYPES = ["image", "video"];
 const MAX_FILE_SIZE = 500 * 1024 * 1024;
+
+function contentSource(item: any) {
+  return item.filePath || item.url || "";
+}
+
+function ContentPreview({ item, compact = false }: { item: any; compact?: boolean }) {
+  const source = contentSource(item);
+  const previewClass = compact ? "h-24" : "aspect-video";
+  const iconClass = compact ? "h-6 w-6" : "h-9 w-9";
+  const iconWrap = compact ? "h-11 w-11" : "h-16 w-16";
+  const label = CONTENT_TYPES[item.type] ?? item.type;
+
+  if (item.type === "image" && source) {
+    return (
+      <div className={`${previewClass} relative overflow-hidden rounded-lg border border-gray-200 bg-gray-100`}>
+        <img src={source} alt={item.title} className="h-full w-full object-contain" loading="lazy" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/50 to-transparent p-2">
+          <span className="rounded bg-white/85 px-2 py-0.5 text-[11px] font-semibold text-gray-700 backdrop-blur">{label}</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (item.type === "video" && source) {
+    return (
+      <div className={`${previewClass} relative overflow-hidden rounded-lg border border-gray-200 bg-black`}>
+        <video src={source} className="h-full w-full object-contain" muted preload="metadata" />
+        <div className="absolute inset-0 flex items-center justify-center bg-black/10">
+          <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-gray-900 shadow-sm">
+            <FileVideo className="h-5 w-5" />
+          </span>
+        </div>
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+          <span className="rounded bg-white/85 px-2 py-0.5 text-[11px] font-semibold text-gray-700 backdrop-blur">Video</span>
+        </div>
+      </div>
+    );
+  }
+
+  const iconMap: Record<string, any> = {
+    webpage: Globe,
+    dashboard: LayoutDashboard,
+    rss: Rss,
+    html: Code,
+  };
+  const Icon = iconMap[item.type] || ImageOff;
+  const host = source
+    ? (() => {
+        try {
+          return new URL(source).hostname.replace(/^www\./, "");
+        } catch {
+          return source;
+        }
+      })()
+    : "Sin URL";
+
+  return (
+    <div className={`${previewClass} relative overflow-hidden rounded-lg border border-gray-200 bg-[radial-gradient(circle_at_20%_10%,#ffffff,transparent_34%),linear-gradient(135deg,#f8fafc,#e2e8f0)]`}>
+      <div className="absolute inset-0 opacity-70 [background-image:linear-gradient(rgba(15,23,42,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(15,23,42,0.05)_1px,transparent_1px)] [background-size:18px_18px]" />
+      <div className="relative flex h-full flex-col justify-between p-4">
+        <div className={`flex ${compact ? "items-center gap-3" : "items-start justify-between gap-4"}`}>
+          <div className={`flex ${iconWrap} shrink-0 items-center justify-center rounded-lg bg-white text-brand-700 shadow-sm`}>
+            <Icon className={iconClass} />
+          </div>
+          {!compact && <span className="rounded-full bg-white/80 px-2.5 py-1 text-xs font-semibold text-gray-600 shadow-sm">{label}</span>}
+        </div>
+        <div className="min-w-0">
+          <p className={`${compact ? "text-sm" : "text-lg"} truncate font-bold text-gray-900`}>{item.title || label}</p>
+          <p className="mt-1 truncate text-xs font-medium text-gray-500">{host}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function Content() {
   const { confirm, dialog } = useConfirm();
@@ -255,11 +329,10 @@ export default function Content() {
                       </div>
                     </div>
                   )}
-                  {form.filePath && form.mimeType?.startsWith("image") && (
-                    <img src={form.filePath} alt="preview" className="mt-2 max-h-40 rounded object-contain bg-gray-100" />
-                  )}
-                  {form.filePath && form.mimeType?.startsWith("video") && (
-                    <video src={form.filePath} className="mt-2 max-h-40 rounded bg-gray-100" controls muted />
+                  {form.filePath && (
+                    <div className="mt-3 max-w-xl">
+                      <ContentPreview item={{ ...form, title: form.title || "Preview" }} />
+                    </div>
                   )}
                 </div>
               ) : (
@@ -300,11 +373,15 @@ export default function Content() {
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {mediaItems.map((asset) => (
                   <button key={asset.id} type="button" onClick={() => selectMedia(asset)} className="border rounded-lg p-2 hover:border-blue-500 hover:bg-blue-50 text-left">
-                    {asset.mimeType?.startsWith("video") ? (
-                      <video src={asset.url} className="w-full h-24 object-cover rounded" muted />
-                    ) : (
-                      <img src={asset.url} alt={asset.originalName} className="w-full h-24 object-cover rounded" />
-                    )}
+                    <ContentPreview
+                      item={{
+                        type: asset.mimeType?.startsWith("video") ? "video" : "image",
+                        title: asset.originalName,
+                        filePath: asset.url,
+                        mimeType: asset.mimeType,
+                      }}
+                      compact
+                    />
                     <p className="text-xs text-gray-600 truncate mt-1">{asset.originalName}</p>
                     <p className="text-xs text-gray-400">{(asset.size / 1024 / 1024).toFixed(1)} MB</p>
                   </button>
@@ -317,13 +394,11 @@ export default function Content() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {items.map((item) => (
-          <div key={item.id} className="card">
-            {item.filePath && item.mimeType?.startsWith("image") && (
-              <img src={item.filePath} alt={item.title} className="w-full h-32 object-cover rounded-t-lg mb-2" />
-            )}
-            {item.filePath && item.mimeType?.startsWith("video") && (
-              <video src={item.filePath} className="w-full h-32 object-cover rounded-t-lg mb-2" muted />
-            )}
+          <div key={item.id} className="card overflow-hidden p-0">
+            <div className="p-3 pb-0">
+              <ContentPreview item={item} />
+            </div>
+            <div className="p-4">
             <div className="flex items-start justify-between mb-2">
               <div>
                 <div className="flex items-center gap-2 mb-1">
@@ -367,6 +442,7 @@ export default function Content() {
             {item.expiresAt && new Date(item.expiresAt) < new Date() && (
               <p className="text-xs text-red-500 mt-1">Expirado</p>
             )}
+            </div>
           </div>
         ))}
         {items.length === 0 && (

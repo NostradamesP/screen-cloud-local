@@ -44,27 +44,28 @@ async function resolveActiveSchedule(screenId: string) {
   return matchedSchedule;
 }
 
-const PLAYER_VERSION = "1.9.0";
+const PLAYER_VERSION = "1.12.0";
 
 function templateForPurpose(purpose?: string | null) {
   switch (purpose) {
     case "manufacturing_logistics":
     case "production":
-      return "media_right";
+      return "center_stage";
     case "office_communications":
     case "office":
     case "meeting_room":
     case "lobby":
-      return "center_stage";
+      return "media_right";
     case "cafeteria_restaurant":
     case "menu_board":
       return "media_left";
     case "retail_promotions":
       return "hero_overlay";
     case "healthcare":
-    case "public_information":
     case "public_info":
       return "media_right";
+    case "public_information":
+      return "center_stage";
     case "events":
       return "hero_overlay";
     case "other":
