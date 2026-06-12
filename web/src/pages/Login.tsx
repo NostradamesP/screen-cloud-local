@@ -152,6 +152,7 @@ export default function Login() {
               <button
                 type="button"
                 onClick={() => setLoginOpen(true)}
+                aria-label="Get Started desde el navbar"
                 className="inline-flex h-12 items-center justify-center rounded-full bg-yellow-300 px-5 text-base font-semibold text-slate-950 shadow-lg shadow-yellow-500/20 transition hover:-translate-y-0.5 hover:bg-yellow-200 sm:px-7"
               >
                 Get Started
@@ -472,6 +473,7 @@ export default function Login() {
                   <button
                     type="button"
                     onClick={() => setLoginOpen(true)}
+                    aria-label="Get Started desde pricing"
                     className="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-yellow-300 px-5 text-sm font-semibold text-slate-950 transition hover:-translate-y-0.5 hover:bg-yellow-200"
                   >
                     Get Started
